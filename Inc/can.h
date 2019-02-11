@@ -11,19 +11,33 @@
 #include "bms.h"
 
 //Constants
+#define SLAVE_ONE 1
+#define SLAVE_TWO 0
 
+//used to set the internal address of can messages so Master knows who is sending
+#ifdef SLAVE_ONE
+#define ID_SLAVE	0x1
+#elif SLAVE_TWO
+#define ID_SLAVE	0x2
+#endif
 //IDs
-#define ID_BMS_MASTER 				0x696
+#define ID_BMS_MASTER 				0x601
 #define ID_BMS_MASTER_CONFIG 	0x666
 
 //rates
 #define CAN_TX_RATE 50 / portTICK_RATE_MS //send at 20Hz
+#define WDAWG_RATE	5000 / portTICK_RATE_MS //5 second timeout value
+#define WDAWG_BLOCK	10 / portTICK_RATE_MS
 
 //TX RTOS
 #define CAN_TX_STACK_SIZE		128
 #define CAN_TX_Q_SIZE				8
 #define CAN_RX_Q_SIZE				8
 #define CAN_TX_PRIORITY			1
+
+//WDawg RTOS
+#define WDAWG_STACK_SIZE		128
+#define WDAWG_PRIORITY			1
 
 
 //structures
@@ -77,7 +91,14 @@ typedef struct
 
 }CanRxMsgTypeDef;
 
+typedef struct {
+	TickType_t last_msg;
+	TickType_t new_msg;
+	SemaphoreHandle_t master_sem;
+}WatchDawg_t;
+
 //Global Variables
+volatile WatchDawg_t wdawg;
 
 //Functions
 void can_filter_init();

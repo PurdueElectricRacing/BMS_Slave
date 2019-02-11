@@ -9,11 +9,14 @@
 #define BMS_H_
 
 //Includes
+#include "can.h"
+#include "vstack.h"
+#include "temp_adc.h"
+#include "FreeRTOS.h"
+#include "cmsis_os.h"
 #include "main.h"
 #include "stm32l4xx_hal.h"
 #include "stm32l4xx_hal_can.h"
-#include "can.h"
-#include "cmsis_os.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -23,6 +26,9 @@
 //RTOS Constants
 #define BMS_MAIN_STACK_SIZE 128
 #define BMS_MAIN_PRIORITY		1
+#define HEARTBEAT_STACK_SIZE 128
+#define HEARTBEAT_PRIORITY  1
+
 
 //Rates
 #define TIMEOUT 				5 / portTICK_RATE_MS
@@ -35,6 +41,7 @@ enum bms_slave_state {
 	NORMAL_OP 	= 2,
 	ERROR_BMS		= 3,
 	SOFT_RESET 	= 4,
+	SHUTDOWN   	= 5
 };
 
 //Main BMS structure that holds can handles and all of the queues
@@ -46,12 +53,13 @@ typedef struct
   QueueHandle_t 		q_rx_can;
   QueueHandle_t 		q_tx_can;
 
+  SemaphoreHandle_t state_sem;
   enum bms_slave_state state;
   //might not need q to receive since polling TBD
 }bms_t;
 
 //Global Variables
-bms_t bms;
+volatile bms_t bms;
 extern CAN_HandleTypeDef 	hcan1;
 extern I2C_HandleTypeDef 	hi2c1;
 extern SPI_HandleTypeDef	hspi1;

@@ -74,6 +74,8 @@ void initRTOSObjects() {
 	//start tasks
 	xTaskCreate(task_txCan, "Transmit Can", CAN_TX_STACK_SIZE, NULL, CAN_TX_PRIORITY, NULL);
 	xTaskCreate(bms_main, "Main Task", BMS_MAIN_STACK_SIZE, NULL, BMS_MAIN_PRIORITY, NULL);
+	xTaskCreate(task_heartbeat, "Heartbeat", HEARTBEAT_STACK_SIZE, NULL, HEARTBEAT_PRIORITY, NULL);
+	xTaskCreate(task_Master_WDawg, "Master WDawg", WDAWG_STACK_SIZE, NULL, WDAWG_PRIORITY, NULL);
 }
 
 /***************************************************************************
@@ -100,23 +102,52 @@ void bms_main() {
 	bms.can = &hcan1;
 	bms.spi = &hspi1;
 	bms.i2c = &hi2c1;
-
+	bms.state_sem = xSemaphoreCreateBinary();
+	xSemaphoreGive(bms.state_sem);
 	//main while loop of execution
 	//what it does? The world may never know
 	while (1) {
 		//just chilling
 		switch (bms.state) {
 			case LOW_POWER:
+				//must have been woken up by interrupt
+				if (xSemaphoreTake(bms.state_sem, TIMEOUT) == pdPASS) {
+					bms.state = INIT;
+					xSemaphoreGive(bms.state_sem); //release sem
+				}
 				break;
 			case INIT:
-				//establish contact with the master
-				//establish contact with Vstack/temp sensors
+				//establish contact with the master by sending ack
+				send_ack();
+				//TODO: establish contact with Vstack/temp sensors
+
+				if (xSemaphoreTake(bms.state_sem, TIMEOUT) == pdPASS) {
+					bms.state = NORMAL_OP;
+					xSemaphoreGive(bms.state_sem); //release sem
+				}
 				break;
 			case NORMAL_OP:
-				break;
-			case SOFT_RESET:
+				//TODO: read from all of the sensors
+				//TODO: send data to master
+				//TODO: manage passive balancing if necessary
 				break;
 			case ERROR_BMS:
+				//TODO: handle error
+				if (xSemaphoreTake(bms.state_sem, TIMEOUT) == pdPASS) {
+					bms.state = SHUTDOWN;
+					xSemaphoreGive(bms.state_sem); //release sem
+				}
+				break;
+			case SHUTDOWN:
+				//tell the WDAWG to disable
+				HAL_GPIO_WritePin(LPM_GPIO_Port, LPM_Pin, GPIO_PIN_RESET); //active low
+				//todo: disable the SPI/I2C periphs so only wakeup on can
+				//enter sleep mode and wait for interrupt to wake back up
+				if (xSemaphoreTake(bms.state_sem, TIMEOUT) == pdPASS) {
+					bms.state = LOW_POWER;
+					xSemaphoreGive(bms.state_sem); //release sem
+				}
+				HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
 				break;
 			default:
 				break;
