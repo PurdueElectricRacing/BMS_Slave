@@ -23,17 +23,24 @@
 //IDs
 #define ID_BMS_MASTER 				0x601
 #define ID_BMS_MASTER_CONFIG 	0x666
+#define ID_BALANCING_MASTER		0x610
+
 
 //rates
 #define CAN_TX_RATE 50 / portTICK_RATE_MS //send at 20Hz
+#define CAN_RX_RATE 50 / portTICK_RATE_MS //send at 20Hz
 #define WDAWG_RATE	5000 / portTICK_RATE_MS //5 second timeout value
 #define WDAWG_BLOCK	10 / portTICK_RATE_MS
 
 //TX RTOS
 #define CAN_TX_STACK_SIZE		128
 #define CAN_TX_Q_SIZE				8
-#define CAN_RX_Q_SIZE				8
 #define CAN_TX_PRIORITY			1
+
+//RX Process RTOS
+#define CAN_RX_STACK_SIZE		128
+#define CAN_RX_Q_SIZE				8
+#define CAN_RX_PRIORITY			1
 
 //WDawg RTOS
 #define WDAWG_STACK_SIZE		128

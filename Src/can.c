@@ -89,6 +89,7 @@ void task_Master_WDawg() {
 			//semaphore successfully taken
 			if ((wdawg.new_msg - wdawg.last_msg) > WDAWG_RATE) {
 				//master is not responding go into shutdown
+				bms.connected = 0;
 				if (xSemaphoreTake(bms.state_sem, TIMEOUT) == pdPASS) {
 					bms.state = SHUTDOWN;
 					xSemaphoreGive(bms.state_sem); //release sem
@@ -144,6 +145,72 @@ void task_txCan() {
     vTaskDelayUntil(&time_init, CAN_TX_RATE);
   }
 }
+
+/***************************************************************************
+*
+*     Function Information
+*
+*     Name of Function: task_CanProcess
+*
+*     Programmer's Name: Matt Flanagan
+*
+*     Function Return Type: None
+*
+*     Parameters (list data type, name, and comment one per line):
+*       1. None
+*
+*      Global Dependents:
+*       1. Can queue and such
+*
+*     Function Description: Processes all of the new messages that have been
+*     received via can.
+***************************************************************************/
+void task_CanProcess() {
+	CanRxMsgTypeDef rx_can;
+	TickType_t time_init = 0;
+	while (1) {
+		time_init = xTaskGetTickCount();
+
+		if (xQueuePeek(bms.q_rx_can, &rx_can, TIMEOUT) == pdTRUE)
+		{
+			xQueueReceive(bms.q_rx_can, &rx_can, TIMEOUT);
+
+			switch (rx_can.StdId)
+			{
+				case ID_BMS_MASTER:
+					//check if you need to go to sleep or wake up
+					if (rx_can.Data[0] == 1) {
+						//wakeup message send ack
+						send_ack();
+						bms.connected = 1;
+					} else if (rx_can.Data[0] == 2) {
+						//shutdown message was received send ack and shutdown
+						send_ack();
+						bms.connected = 0;
+						if (xSemaphoreTake(bms.state_sem, TIMEOUT) == pdPASS) {
+							bms.state = SHUTDOWN;
+							xSemaphoreGive(bms.state_sem); //release sem
+						}
+					}
+					break;
+				case ID_BALANCING_MASTER:
+					//see if this pertains to you and then toggle passive balancing if so
+					if (rx_can.Data[0] == ID_SLAVE) {
+						bms.passive_en = !bms.passive_en;
+						if (bms.passive_en == 0) {
+							//todo: shutdown_passive();
+						} else {
+							//todo: enable_passive();
+						}
+					}
+
+			}
+		}
+
+		vTaskDelayUntil(&time_init, CAN_RX_RATE);
+	}
+}
+
 
 /***************************************************************************
 *

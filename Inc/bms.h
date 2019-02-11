@@ -52,6 +52,8 @@ typedef struct
   SPI_HandleTypeDef* spi;
   QueueHandle_t 		q_rx_can;
   QueueHandle_t 		q_tx_can;
+  uint8_t						connected; //used to determine if connected to master
+  uint8_t						passive_en;
 
   SemaphoreHandle_t state_sem;
   enum bms_slave_state state;

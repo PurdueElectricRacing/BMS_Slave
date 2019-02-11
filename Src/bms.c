@@ -103,6 +103,8 @@ void bms_main() {
 	bms.spi = &hspi1;
 	bms.i2c = &hi2c1;
 	bms.state_sem = xSemaphoreCreateBinary();
+	bms.connected = 0;
+	bms.passive_en = 0;
 	xSemaphoreGive(bms.state_sem);
 	//main while loop of execution
 	//what it does? The world may never know
@@ -117,13 +119,13 @@ void bms_main() {
 				}
 				break;
 			case INIT:
-				//establish contact with the master by sending ack
-				send_ack();
 				//TODO: establish contact with Vstack/temp sensors
 
-				if (xSemaphoreTake(bms.state_sem, TIMEOUT) == pdPASS) {
-					bms.state = NORMAL_OP;
-					xSemaphoreGive(bms.state_sem); //release sem
+				if (bms.connected) { //only move to normal op when everything is connected
+					if (xSemaphoreTake(bms.state_sem, TIMEOUT) == pdPASS) {
+						bms.state = NORMAL_OP;
+						xSemaphoreGive(bms.state_sem); //release sem
+					}
 				}
 				break;
 			case NORMAL_OP:
