@@ -1,0 +1,1 @@
+astyle --indent=spaces=2 --style=java --indent-switches --pad-comma --pad-oper --pad-header --fill-empty-lines --align-pointer=type --break-one-line-headers --add-braces --suffix=none --convert-tabs --max-code-length=100 --break-after-logical --lineend=linux --recursive "*.c"

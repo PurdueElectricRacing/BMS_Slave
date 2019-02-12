@@ -10,5 +10,11 @@
 
 #include "bms.h"
 
+#define VSTACK_STACK_SIZE 128
+#define VSTACK_PRIORITY   1
+#define VSTACK_RATE       20 / portTICK_RATE_MS
+
+HAL_StatusTypeDef init_LTC2497();
+void task_VSTACK();
 
 #endif /* VSTACK_H_ */

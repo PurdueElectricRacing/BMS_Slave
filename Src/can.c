@@ -36,7 +36,7 @@
 *     rx can queue and move on with life.
 *
 ***************************************************************************/
-void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef* hcan) {
   CanRxMsgTypeDef rx;
   TickType_t temp;
   CAN_RxHeaderTypeDef header;
@@ -44,14 +44,14 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
   rx.DLC = header.DLC;
   rx.StdId = header.StdId;
   xQueueSendFromISR(bms.q_rx_can, &rx, 0);
-
+  
   //master watchdawg task
   if (xSemaphoreTakeFromISR(wdawg.master_sem, NULL) == pdPASS) {
-		//semaphore successfully taken
-		temp = wdawg.new_msg;
-		wdawg.new_msg = xTaskGetTickCountFromISR();
-		wdawg.last_msg = temp;
-		xSemaphoreGiveFromISR(wdawg.master_sem, NULL); //give the sem back
+    //semaphore successfully taken
+    temp = wdawg.new_msg;
+    wdawg.new_msg = xTaskGetTickCountFromISR();
+    wdawg.last_msg = temp;
+    xSemaphoreGiveFromISR(wdawg.master_sem, NULL); //give the sem back
   }
 }
 
@@ -76,29 +76,29 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
 *     enter sleep mode
 ***************************************************************************/
 void task_Master_WDawg() {
-	wdawg.master_sem = xSemaphoreCreateBinary();
-	wdawg.last_msg = xTaskGetTickCount();
-	wdawg.new_msg = xTaskGetTickCount();
-	TickType_t time_init = 0;
-
-	xSemaphoreGive(wdawg.master_sem); //allows it to be taken
-
-	while (1) {
-		time_init = xTaskGetTickCount();
-		if (xSemaphoreTake(wdawg.master_sem, WDAWG_BLOCK) == pdPASS) {
-			//semaphore successfully taken
-			if ((wdawg.new_msg - wdawg.last_msg) > WDAWG_RATE) {
-				//master is not responding go into shutdown
-				bms.connected = 0;
-				if (xSemaphoreTake(bms.state_sem, TIMEOUT) == pdPASS) {
-					bms.state = SHUTDOWN;
-					xSemaphoreGive(bms.state_sem); //release sem
-				}
-			}
-			xSemaphoreGive(wdawg.master_sem);
-		}
-		vTaskDelayUntil(&time_init, WDAWG_RATE);
-	}
+  wdawg.master_sem = xSemaphoreCreateBinary();
+  wdawg.last_msg = xTaskGetTickCount();
+  wdawg.new_msg = xTaskGetTickCount();
+  TickType_t time_init = 0;
+  
+  xSemaphoreGive(wdawg.master_sem); //allows it to be taken
+  
+  while (1) {
+    time_init = xTaskGetTickCount();
+    if (xSemaphoreTake(wdawg.master_sem, WDAWG_BLOCK) == pdPASS) {
+      //semaphore successfully taken
+      if ((wdawg.new_msg - wdawg.last_msg) > WDAWG_RATE) {
+        //master is not responding go into shutdown
+        bms.connected = 0;
+        if (xSemaphoreTake(bms.state_sem, TIMEOUT) == pdPASS) {
+          bms.state = SHUTDOWN;
+          xSemaphoreGive(bms.state_sem); //release sem
+        }
+      }
+      xSemaphoreGive(wdawg.master_sem);
+    }
+    vTaskDelayUntil(&time_init, WDAWG_RATE);
+  }
 }
 
 /***************************************************************************
@@ -124,12 +124,10 @@ void task_Master_WDawg() {
 void task_txCan() {
   CanTxMsgTypeDef tx;
   TickType_t time_init = 0;
-  while (1)
-  {
+  while (1) {
     time_init = xTaskGetTickCount();
     //check if this task is triggered
-    if (xQueuePeek(bms.q_tx_can, &tx, TIMEOUT) == pdTRUE)
-    {
+    if (xQueuePeek(bms.q_tx_can, &tx, TIMEOUT) == pdTRUE) {
       xQueueReceive(bms.q_tx_can, &tx, TIMEOUT);  //actually take item out of queue
       CAN_TxHeaderTypeDef header;
       header.DLC = tx.DLC;
@@ -166,49 +164,47 @@ void task_txCan() {
 *     received via can.
 ***************************************************************************/
 void task_CanProcess() {
-	CanRxMsgTypeDef rx_can;
-	TickType_t time_init = 0;
-	while (1) {
-		time_init = xTaskGetTickCount();
-
-		if (xQueuePeek(bms.q_rx_can, &rx_can, TIMEOUT) == pdTRUE)
-		{
-			xQueueReceive(bms.q_rx_can, &rx_can, TIMEOUT);
-
-			switch (rx_can.StdId)
-			{
-				case ID_BMS_MASTER:
-					//check if you need to go to sleep or wake up
-					if (rx_can.Data[0] == 1) {
-						//wakeup message send ack
-						send_ack();
-						bms.connected = 1;
-					} else if (rx_can.Data[0] == 2) {
-						//shutdown message was received send ack and shutdown
-						send_ack();
-						bms.connected = 0;
-						if (xSemaphoreTake(bms.state_sem, TIMEOUT) == pdPASS) {
-							bms.state = SHUTDOWN;
-							xSemaphoreGive(bms.state_sem); //release sem
-						}
-					}
-					break;
-				case ID_BALANCING_MASTER:
-					//see if this pertains to you and then toggle passive balancing if so
-					if (rx_can.Data[0] == ID_SLAVE) {
-						bms.passive_en = !bms.passive_en;
-						if (bms.passive_en == 0) {
-							//todo: shutdown_passive();
-						} else {
-							//todo: enable_passive();
-						}
-					}
-
-			}
-		}
-
-		vTaskDelayUntil(&time_init, CAN_RX_RATE);
-	}
+  CanRxMsgTypeDef rx_can;
+  TickType_t time_init = 0;
+  while (1) {
+    time_init = xTaskGetTickCount();
+    
+    if (xQueuePeek(bms.q_rx_can, &rx_can, TIMEOUT) == pdTRUE) {
+      xQueueReceive(bms.q_rx_can, &rx_can, TIMEOUT);
+      
+      switch (rx_can.StdId) {
+        case ID_BMS_MASTER:
+          //check if you need to go to sleep or wake up
+          if (rx_can.Data[0] == 1) {
+            //wakeup message send ack
+            send_ack();
+            bms.connected = 1;
+          } else if (rx_can.Data[0] == 2) {
+            //shutdown message was received send ack and shutdown
+            send_ack();
+            bms.connected = 0;
+            if (xSemaphoreTake(bms.state_sem, TIMEOUT) == pdPASS) {
+              bms.state = SHUTDOWN;
+              xSemaphoreGive(bms.state_sem); //release sem
+            }
+          }
+          break;
+        case ID_BALANCING_MASTER:
+          //see if this pertains to you and then toggle passive balancing if so
+          if (rx_can.Data[0] == ID_SLAVE) {
+            bms.passive_en = !bms.passive_en;
+            if (bms.passive_en == 0) {
+              //todo: shutdown_passive();
+            } else {
+              //todo: enable_passive();
+            }
+          }
+          
+      }
+    }
+    
+    vTaskDelayUntil(&time_init, CAN_RX_RATE);
+  }
 }
 
 
@@ -267,13 +263,13 @@ void can_filter_init(CAN_HandleTypeDef* hcan) {
 *
 ***************************************************************************/
 void send_ack() {
-	CanTxMsgTypeDef msg;
-	msg.IDE = CAN_ID_STD;
-	msg.RTR = CAN_RTR_DATA;
-	msg.DLC = 1;
-	msg.StdId = ID_BMS_MASTER;
-	msg.Data[0] = ID_SLAVE;
-
-	xQueueSendToBack(bms.q_tx_can, &msg, 100);
+  CanTxMsgTypeDef msg;
+  msg.IDE = CAN_ID_STD;
+  msg.RTR = CAN_RTR_DATA;
+  msg.DLC = 1;
+  msg.StdId = ID_BMS_MASTER;
+  msg.Data[0] = ID_SLAVE;
+  
+  xQueueSendToBack(bms.q_tx_can, &msg, 100);
 }
 
