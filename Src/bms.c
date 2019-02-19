@@ -108,7 +108,15 @@ void initBMSobject() {
   bms.temp1_con = 0;
   bms.temp2_con = 1; //unused for senior design TODO: fix when it's real
   bms.vstack_con = 0;
+
+  bms.param.sem = xSemaphoreCreateBinary();
+  bms.param.temp_msg_en = ASSERTED;
+  bms.param.volt_msg_en = ASSERTED;
+  bms.param.temp_msg_rate = TEMP_POLL_RATE;
+  bms.param.volt_msg_rate = VOLT_POLL_RATE;
+
   xSemaphoreGive(bms.state_sem);
+  xSemaphoreGive(bms.param.sem);
 }
 
 /***************************************************************************

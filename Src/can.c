@@ -16,6 +16,8 @@
 
 #include "can.h"
 
+Success_t process_slave_param_set(CanRxMsgTypeDef* rx_can);
+
 /***************************************************************************
 *
 *     Function Information
@@ -199,11 +201,12 @@ void task_CanProcess() {
               //todo: enable_passive();
             }
           }
+          break;
         case ID_MAS_WDAWG:
         	//do nothing taken care of by wdawg task
         	break;
         case ID_MAS_CONFIG:
-        	//todo implement
+        	process_slave_param_set(&rx_can);
         	break;
       }
     }
@@ -278,3 +281,48 @@ void send_ack() {
   xQueueSendToBack(bms.q_tx_can, &msg, 100);
 }
 
+/***************************************************************************
+*
+*     Function Information
+*
+*     Name of Function: process_gui_param_set
+*
+*     Programmer's Name: Matt Flanagan
+*
+*     Function Return Type: Success_t
+*
+*     Parameters (list data type, name, and comment one per line):
+*       1. CanRxMsgTypeDef* rx_can
+*
+*      Global Dependents:
+*       1. bms.params
+*
+*     Function Description: processes a gui param config msg and sets the appropriate variable
+*
+***************************************************************************/
+Success_t process_slave_param_set(CanRxMsgTypeDef* rx_can) {
+  Success_t status = SUCCESSFUL;
+  int16_t temp = 0;
+  uint16_t volt = 0;
+  if (xSemaphoreTake(bms.param.sem, TIMEOUT) == pdTRUE) {
+  	bms.param.volt_msg_en = bit_extract(CONFIG_VOLT_MSG_MASK, CONFIG_VOLT_MSG_SHIFT, rx_can->Data[0]);
+  	bms.param.temp_msg_en = bit_extract(CONFIG_TEMP_MSG_MASK, CONFIG_TEMP_MSG_SHIFT, rx_can->Data[0]);
+
+  	volt = byte_combine(rx_can->Data[1], rx_can->Data[2]);
+  	temp = byte_combine(rx_can->Data[3], rx_can->Data[4]);
+
+  	if (volt != DEFAULT) {
+  		bms.param.volt_msg_rate = volt;
+  	}
+
+  	if (temp != DEFAULT) {
+  		bms.param.temp_msg_rate = temp;
+  	}
+
+    xSemaphoreGive(bms.param.sem);
+  } else {
+    status = FAILURE;
+  }
+
+  return status;
+}

@@ -33,6 +33,20 @@
 //Rates
 #define TIMEOUT         5 / portTICK_RATE_MS
 #define HEARTBEAT_RATE  750 / portTICK_RATE_MS
+// Defaults (can be configured by master in real time)
+#define TEMP_POLL_RATE	1000 / portTICK_RATE_MS
+#define VOLT_POLL_RATE	25 / portTICK_RATE_MS
+
+//enums
+typedef enum {
+  SUCCESSFUL = 0,
+  FAILURE = 1,
+} Success_t;
+
+typedef enum flag_state {
+  ASSERTED = 1,
+  DEASSERTED = 0,
+} flag_t;
 
 //structures
 enum bms_slave_state {
@@ -43,6 +57,18 @@ enum bms_slave_state {
   SOFT_RESET  = 4,
   SHUTDOWN    = 5
 };
+
+typedef struct {
+  //broadcasts
+  flag_t volt_msg_en;
+  flag_t temp_msg_en;
+
+  //rates can be max BROADCAST_RATE hz and can be any integer multiple of that
+  uint16_t volt_msg_rate;
+  uint16_t temp_msg_rate;
+
+  SemaphoreHandle_t sem;
+} params_t;
 
 //Main BMS structure that holds can handles and all of the queues
 typedef struct {
@@ -57,6 +83,8 @@ typedef struct {
   uint8_t           temp2_con;
   uint8_t           passive_en;
   
+  params_t 					param;
+
   SemaphoreHandle_t state_sem;
   enum bms_slave_state state;
   //might not need q to receive since polling TBD

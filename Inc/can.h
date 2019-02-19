@@ -55,6 +55,28 @@
 #define WDAWG_STACK_SIZE    128
 #define WDAWG_PRIORITY      1
 
+//Masks
+#define CONFIG_VOLT_MSG_MASK      0x01
+#define CONFIG_TEMP_MSG_MASK      0x02
+#define CONFIG_VOLT_MSG_SHIFT     0
+#define CONFIG_TEMP_MSG_SHIFT     1
+
+//macros
+#define bit_extract(mask, shift, byte) (byte & mask) >> shift
+#define byte_combine(msb, lsb) ((msb << 8) | lsb)
+
+//enums
+enum params_enum {
+	VOLT_MSG_EN 	= 0,
+	TEMP_MSG_EN 	= 1,
+	VOLT_MSG_RATE = 2,
+	TEMP_MSG_RATE = 3
+};
+
+enum defaults_enum {
+	DEFAULT = 0,
+	CHANGE = 1
+};
 
 //structures
 typedef struct {
