@@ -22,10 +22,17 @@
 #define ID_SLAVE  0x2
 #endif
 //IDs
-#define ID_BMS_MASTER         0x600
-#define ID_BMS_MASTER_CONFIG  0x601
-#define ID_BALANCING_MASTER   0x603
-#define ID_SLAVE_FAULT_CODE   0x621
+//Master -> Slave
+#define ID_MAS_POW_CMD        0x600
+#define ID_MAS_CONFIG  				0x601
+#define ID_MAS_PASSIVE   			0x603
+#define ID_MAS_WDAWG					0x604
+
+//Slave -> Master
+#define ID_SLAVE_ACK					0x640
+#define ID_SLAVE_FAULT_CODE   0x641
+#define ID_SLAVE_VOLT_MSG			0x642
+#define ID_SLAVE_TEMP_MSG			0x643
 
 
 //rates

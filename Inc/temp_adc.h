@@ -13,7 +13,6 @@
 #define ID_TEMP_1   0x7f
 #define ID_TEMP_2   0x7e
 #define TRIALS      2
-#define TIMEOUT     50 / portTICK_RATE_MS
 
 #define ACQUIRE_TEMP_STACK_SIZE 128
 #define ACQUIRE_TEMP_PRIORITY   1

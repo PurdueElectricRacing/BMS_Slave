@@ -173,7 +173,7 @@ void task_CanProcess() {
       xQueueReceive(bms.q_rx_can, &rx_can, TIMEOUT);
       
       switch (rx_can.StdId) {
-        case ID_BMS_MASTER:
+        case ID_MAS_POW_CMD:
           //check if you need to go to sleep or wake up
           if (rx_can.Data[0] == 1) {
             //wakeup message send ack
@@ -189,7 +189,7 @@ void task_CanProcess() {
             }
           }
           break;
-        case ID_BALANCING_MASTER:
+        case ID_MAS_PASSIVE:
           //see if this pertains to you and then toggle passive balancing if so
           if (rx_can.Data[0] == ID_SLAVE) {
             bms.passive_en = !bms.passive_en;
@@ -199,7 +199,12 @@ void task_CanProcess() {
               //todo: enable_passive();
             }
           }
-          
+        case ID_MAS_WDAWG:
+        	//do nothing taken care of by wdawg task
+        	break;
+        case ID_MAS_CONFIG:
+        	//todo implement
+        	break;
       }
     }
     
@@ -231,10 +236,10 @@ void task_CanProcess() {
 ***************************************************************************/
 void can_filter_init(CAN_HandleTypeDef* hcan) {
   CAN_FilterTypeDef FilterConf;
-  FilterConf.FilterIdHigh =         ID_BMS_MASTER << 5;
-  FilterConf.FilterIdLow =          ID_BMS_MASTER_CONFIG << 5;
-  FilterConf.FilterMaskIdHigh =     0;
-  FilterConf.FilterMaskIdLow =      0;
+  FilterConf.FilterIdHigh =         ID_MAS_POW_CMD << 5;
+  FilterConf.FilterIdLow =          ID_MAS_CONFIG << 5;
+  FilterConf.FilterMaskIdHigh =     ID_MAS_PASSIVE << 5;
+  FilterConf.FilterMaskIdLow =      ID_MAS_WDAWG << 5;
   FilterConf.FilterFIFOAssignment = CAN_FilterFIFO0;
   FilterConf.FilterBank = 0;
   FilterConf.FilterMode = CAN_FILTERMODE_IDLIST;
@@ -267,7 +272,7 @@ void send_ack() {
   msg.IDE = CAN_ID_STD;
   msg.RTR = CAN_RTR_DATA;
   msg.DLC = 1;
-  msg.StdId = ID_BMS_MASTER;
+  msg.StdId = ID_SLAVE_ACK;
   msg.Data[0] = ID_SLAVE;
   
   xQueueSendToBack(bms.q_tx_can, &msg, 100);
