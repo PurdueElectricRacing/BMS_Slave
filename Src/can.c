@@ -215,6 +215,47 @@ void task_CanProcess() {
   }
 }
 
+/***************************************************************************
+*
+*     Function Information
+*
+*     Name of Function: task_broadcast
+*
+*     Programmer's Name: Matt Flanagan
+*
+*     Function Return Type: None
+*
+*     Parameters (list data type, name, and comment one per line):
+*       1. None
+*
+*      Global Dependents:
+*       1. Can queue and such
+*
+*     Function Description: brodcasts msg's at the defined rate and if they are
+*     enabled
+***************************************************************************/
+void task_broadcast() {
+  TickType_t time_init = 0;
+  uint16_t i = 0;
+  while (1) {
+    time_init = xTaskGetTickCount();
+    if (bms.param.volt_msg_en == ASSERTED) {
+      if (execute_broadcast(bms.param.volt_msg_rate, i)) {
+        send_volt_msg();
+      }
+    }
+    vTaskDelay(BROADCAST_DELAY);
+    if (bms.param.temp_msg_en == ASSERTED) {
+      if (execute_broadcast(bms.param.temp_msg_rate, i)) {
+        send_temp_msg();
+      }
+    }
+
+    i++;
+    vTaskDelayUntil(&time_init, BROADCAST_RATE);
+  }
+}
+
 
 /***************************************************************************
 *
@@ -322,6 +363,88 @@ Success_t process_slave_param_set(CanRxMsgTypeDef* rx_can) {
     xSemaphoreGive(bms.param.sem);
   } else {
     status = FAILURE;
+  }
+
+  return status;
+}
+
+Success_t send_volt_msg() {
+  Success_t status = SUCCESSFUL;
+  status = send_generic_msg(NUM_VTAPS, VOLT_MSG);
+  return status;
+}
+
+Success_t send_temp_msg() {
+  Success_t status = SUCCESSFUL;
+  status = send_generic_msg(NUM_TEMP, TEMP_MSG);
+  return status;
+}
+
+Success_t send_generic_msg(uint16_t items, can_broadcast_t msg_type) {
+  Success_t status = SUCCESSFUL;
+  uint8_t i = 0;
+  uint8_t x = 0;
+  CanTxMsgTypeDef msg;
+  msg.IDE = CAN_ID_STD;
+  msg.RTR = CAN_RTR_DATA;
+
+  switch (msg_type) {
+    case VOLT_MSG:
+			for (x = 0; x < NUM_VTAPS; x = x + VALUES_PER_MSG) {
+				msg.DLC = GENERIC_MSG_LENGTH;
+				msg.StdId = ID_SLAVE_VOLT_MSG;
+				msg.Data[0] = i;  //slave id
+				msg.Data[1] = x / VALUES_PER_MSG; //row
+				msg.Data[2] = extract_MSB(bms.vtap.data[x]);
+				msg.Data[3] = extract_LSB(bms.vtap.data[x]);
+				if (x + 1 < NUM_VTAPS) {
+					msg.Data[4] = extract_MSB(bms.vtap.data[x + 1]);
+					msg.Data[5] = extract_LSB(bms.vtap.data[x + 1]);
+				} else {
+					msg.Data[4] = 0;
+					msg.Data[5] = 0;
+				}
+				if (x + 2 < NUM_VTAPS) {
+					msg.Data[6] = extract_MSB(bms.vtap.data[x + 2]);
+					msg.Data[7] = extract_LSB(bms.vtap.data[x + 2]);
+				} else {
+					msg.Data[6] = 0;
+					msg.Data[7] = 0;
+				}
+
+				if (xQueueSendToBack(bms.q_tx_can, &msg, 100) != pdPASS) {
+					status = FAILURE;
+				}
+			}
+      break;
+    case TEMP_MSG:
+			for (x = 0; x < NUM_TEMP; x = x + VALUES_PER_MSG) {
+				msg.DLC = MACRO_MSG_LENGTH;
+				msg.StdId = ID_SLAVE_TEMP_MSG;
+				msg.Data[0] = i;  //slave id
+				msg.Data[1] = x / VALUES_PER_MSG; //row
+				msg.Data[2] = extract_MSB(bms.temp.data[x]);
+				msg.Data[3] = extract_LSB(bms.temp.data[x]);
+				if (x + 1 < NUM_TEMP) {
+					msg.Data[4] = extract_MSB(bms.temp.data[x + 1]);
+					msg.Data[5] = extract_LSB(bms.temp.data[x + 1]);
+				} else {
+					msg.Data[4] = 0;
+					msg.Data[5] = 0;
+				}
+				if (x + 2 < NUM_TEMP) {
+					msg.Data[6] = extract_MSB(bms.temp.data[x + 2]);
+					msg.Data[7] = extract_LSB(bms.temp.data[x + 2]);
+				} else {
+					msg.Data[6] = 0;
+					msg.Data[7] = 0;
+				}
+
+				if (xQueueSendToBack(bms.q_tx_can, &msg, 100) != pdPASS) {
+					status = FAILURE;
+				}
+			}
+      break;
   }
 
   return status;

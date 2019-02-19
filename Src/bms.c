@@ -78,6 +78,7 @@ void initRTOSObjects() {
   xTaskCreate(task_Master_WDawg, "Master WDawg", WDAWG_STACK_SIZE, NULL, WDAWG_PRIORITY, NULL);
   xTaskCreate(task_VSTACK, "VSTACK", VSTACK_STACK_SIZE, NULL, VSTACK_PRIORITY, NULL);
   xTaskCreate(task_acquire_temp, "temp", ACQUIRE_TEMP_STACK_SIZE, NULL, ACQUIRE_TEMP_PRIORITY, NULL);
+  xtaskcreate(task_broadcast, "broadcast", BROAD_STACK_SIZE, NULL, BROAD_PRIORITY, NULL);
 }
 
 /***************************************************************************
@@ -99,21 +100,29 @@ void initRTOSObjects() {
 *     Function Description: Initialize the BMS structure
 ***************************************************************************/
 void initBMSobject() {
+	uint8_t x = 0;
   bms.can = &hcan1;
   bms.spi = &hspi1;
   bms.i2c = &hi2c1;
   bms.state_sem = xSemaphoreCreateBinary();
-  bms.connected = 0;
-  bms.passive_en = 0;
-  bms.temp1_con = 0;
-  bms.temp2_con = 1; //unused for senior design TODO: fix when it's real
-  bms.vstack_con = 0;
+  bms.connected = FAULTED;
+  bms.passive_en = FAULTED;
+  bms.temp1_con = FAULTED;
+  bms.temp2_con = NORMAL; //unused for senior design TODO: fix when it's real
+  bms.vstack_con = FAULTED;
 
   bms.param.sem = xSemaphoreCreateBinary();
   bms.param.temp_msg_en = ASSERTED;
   bms.param.volt_msg_en = ASSERTED;
   bms.param.temp_msg_rate = TEMP_POLL_RATE;
   bms.param.volt_msg_rate = VOLT_POLL_RATE;
+
+  for (x = 0; x < NUM_VTAPS; x ++) {
+		bms.vtap.data[x] = 0;
+	}
+	for (x = 0; x < NUM_TEMP; x ++) {
+		bms.temp.data[x] = 0;
+	}
 
   xSemaphoreGive(bms.state_sem);
   xSemaphoreGive(bms.param.sem);
@@ -154,7 +163,6 @@ void task_bms_main() {
         break;
       case INIT:
         //TODO: establish contact with Vstack/temp sensors
-        
         if (bms.connected && bms.vstack_con && bms.temp1_con &&
             bms.temp2_con) { //only move to normal op when everything is connected
           if (xSemaphoreTake(bms.state_sem, TIMEOUT) == pdPASS) {
@@ -169,9 +177,8 @@ void task_bms_main() {
         //TODO: manage passive balancing if necessary
         break;
       case ERROR_BMS:
-        //TODO: handle error just send error code to the Master (let that hoe deal with it)
-        //todo: send_error();
-        if (xSemaphoreTake(bms.state_sem, TIMEOUT) == pdPASS) {
+      	send_faults();
+      	if (xSemaphoreTake(bms.state_sem, TIMEOUT) == pdPASS) {
           bms.state = SHUTDOWN;
           xSemaphoreGive(bms.state_sem); //release sem
         }
@@ -192,5 +199,68 @@ void task_bms_main() {
     }
   }
   //never get here
+}
+
+/***************************************************************************
+*
+*     Function Information
+*
+*     Name of Function: clear_faults
+*
+*     Programmer's Name: Matt Flanagan
+*
+*     Function Return Type: Success status
+*
+*     Parameters (list data type, name, and comment one per line):
+*       1.
+*
+*      Global Dependents:
+*       1.
+*
+*     Function Description: clears all pending faults in the BMS
+***************************************************************************/
+Success_t clear_faults() {
+  bms.connected = NORMAL;
+  bms.temp1_con = NORMAL;
+  bms.temp2_con = NORMAL;
+  bms.vstack_con = NORMAL;
+
+  return SUCCESSFUL;
+}
+
+/***************************************************************************
+*
+*     Function Information
+*
+*     Name of Function: wakeup_slaves
+*
+*     Programmer's Name: Matt Flanagan
+*
+*     Function Return Type: Success status
+*
+*     Parameters (list data type, name, and comment one per line):
+*       1.
+*
+*      Global Dependents:
+*       1. q_tx_bmscan
+*
+*     Function Description: sends fault code to the GUI see CAN msg docs for
+*     more info on what each bit is representing
+***************************************************************************/
+Success_t send_faults() {
+  CanTxMsgTypeDef msg;
+  uint8_t i = 0;
+  msg.IDE = CAN_ID_STD;
+  msg.RTR = CAN_RTR_DATA;
+  msg.DLC = ERROR_MSG_LENGTH; //one for the macro faults
+  msg.StdId = ID_SLAVE_FAULT_CODE;
+
+  msg.Data[0] = ID_SLAVE;
+  msg.Data[1] = bitwise_or(FAULT_VOLT_SHIFT, FAULT_VOLT_MASK, bms.vstack_con);
+  msg.Data[1] |= bitwise_or(FAULT_TEMP1_SHIFT, FAULT_TEMP1_MASK, bms.temp1_con);
+  msg.Data[1] |= bitwise_or(FAULT_TEMP2_SHIFT, FAULT_TEMP2_MASK, bms.temp2_con);
+
+  xQueueSendToBack(bms.q_tx_can, &msg, 100);
+  return SUCCESSFUL;
 }
 
