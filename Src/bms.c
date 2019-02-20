@@ -16,6 +16,8 @@
 ***************************************************************************/
 #include "bms.h"
 
+Success_t send_faults();
+Success_t clear_faults();
 
 /***************************************************************************
 *
@@ -72,13 +74,13 @@ void initRTOSObjects() {
   bms.q_rx_can = xQueueCreate(CAN_RX_Q_SIZE, sizeof(CanRxMsgTypeDef));
   
   //start tasks
-  xTaskCreate(task_txCan, "Transmit Can", CAN_TX_STACK_SIZE, NULL, CAN_TX_PRIORITY, NULL);
+  //xTaskCreate(task_txCan, "Transmit Can", CAN_TX_STACK_SIZE, NULL, CAN_TX_PRIORITY, NULL);
   xTaskCreate(task_bms_main, "Main Task", BMS_MAIN_STACK_SIZE, NULL, BMS_MAIN_PRIORITY, NULL);
   xTaskCreate(task_heartbeat, "Heartbeat", HEARTBEAT_STACK_SIZE, NULL, HEARTBEAT_PRIORITY, NULL);
-  xTaskCreate(task_Master_WDawg, "Master WDawg", WDAWG_STACK_SIZE, NULL, WDAWG_PRIORITY, NULL);
-  xTaskCreate(task_VSTACK, "VSTACK", VSTACK_STACK_SIZE, NULL, VSTACK_PRIORITY, NULL);
-  xTaskCreate(task_acquire_temp, "temp", ACQUIRE_TEMP_STACK_SIZE, NULL, ACQUIRE_TEMP_PRIORITY, NULL);
-  xtaskcreate(task_broadcast, "broadcast", BROAD_STACK_SIZE, NULL, BROAD_PRIORITY, NULL);
+  //xTaskCreate(task_Master_WDawg, "Master WDawg", WDAWG_STACK_SIZE, NULL, WDAWG_PRIORITY, NULL);
+  //xTaskCreate(task_VSTACK, "VSTACK", VSTACK_STACK_SIZE, NULL, VSTACK_PRIORITY, NULL);
+  //xTaskCreate(task_acquire_temp, "temp", ACQUIRE_TEMP_STACK_SIZE, NULL, ACQUIRE_TEMP_PRIORITY, NULL);
+  //xTaskCreate(task_broadcast, "broadcast", BROAD_STACK_SIZE, NULL, BROAD_PRIORITY, NULL);
 }
 
 /***************************************************************************
@@ -149,10 +151,11 @@ void initBMSobject() {
 *     ability to update paramaters on the fly
 ***************************************************************************/
 void task_bms_main() {
-  //main while loop of execution
-  //what it does? The world may never know
+	TickType_t time_init = 0;
+	uint8_t i = 0;
   while (1) {
     //just chilling
+  	time_init = xTaskGetTickCount();
     switch (bms.state) {
       case LOW_POWER:
         //must have been woken up by interrupt
@@ -177,11 +180,16 @@ void task_bms_main() {
         //TODO: manage passive balancing if necessary
         break;
       case ERROR_BMS:
-      	send_faults();
-      	if (xSemaphoreTake(bms.state_sem, TIMEOUT) == pdPASS) {
-          bms.state = SHUTDOWN;
-          xSemaphoreGive(bms.state_sem); //release sem
-        }
+      	if (bms.connected) {
+        	send_faults();
+        	vTaskDelay(SEND_ERROR_DELAY);
+      	} else {
+      		//if master no longer connected shutdown
+      		if (xSemaphoreTake(bms.state_sem, TIMEOUT) == pdPASS) {
+						bms.state = SHUTDOWN;
+						xSemaphoreGive(bms.state_sem); //release sem
+					}
+      	}
         break;
       case SHUTDOWN:
         //tell the WDAWG to disable
@@ -197,6 +205,12 @@ void task_bms_main() {
       default:
         break;
     }
+
+    if (i % 100 == 0) {
+			HAL_GPIO_TogglePin(BLUE_LED_GPIO_Port, BLUE_LED_Pin);
+		}
+    i++;
+		vTaskDelayUntil(&time_init, BMS_MAIN_RATE);
   }
   //never get here
 }
@@ -249,7 +263,6 @@ Success_t clear_faults() {
 ***************************************************************************/
 Success_t send_faults() {
   CanTxMsgTypeDef msg;
-  uint8_t i = 0;
   msg.IDE = CAN_ID_STD;
   msg.RTR = CAN_RTR_DATA;
   msg.DLC = ERROR_MSG_LENGTH; //one for the macro faults

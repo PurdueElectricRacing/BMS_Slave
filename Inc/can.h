@@ -165,6 +165,6 @@ void task_txCan();
 void task_Master_WDawg();
 void task_CanProcess();
 void send_ack();
-
+void task_broadcast();
 
 #endif /* CAN_H_ */

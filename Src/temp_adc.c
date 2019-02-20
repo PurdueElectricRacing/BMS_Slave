@@ -7,9 +7,8 @@
 #include "temp_adc.h"
 
 void task_acquire_temp() {
-  HAL_StatusTypeDef status = HAL_OK;
   uint8_t toggle = 0;
-  status = init_LTC2497(); //don't need to handle an error TODO: (maybe use a while loop)
+  init_LTC2497(); //don't need to handle an error TODO: (maybe use a while loop)
   TickType_t time_init = 0;
   while (1) {
     time_init = xTaskGetTickCount();

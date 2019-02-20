@@ -17,6 +17,9 @@
 #include "can.h"
 
 Success_t process_slave_param_set(CanRxMsgTypeDef* rx_can);
+Success_t send_volt_msg();
+Success_t send_temp_msg();
+Success_t send_generic_msg(uint16_t items, can_broadcast_t msg_type);
 
 /***************************************************************************
 *

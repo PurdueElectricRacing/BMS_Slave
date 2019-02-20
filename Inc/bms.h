@@ -35,6 +35,11 @@
 //Rates
 #define TIMEOUT         5 / portTICK_RATE_MS
 #define HEARTBEAT_RATE  750 / portTICK_RATE_MS
+#define BMS_MAIN_RATE       20 / portTICK_RATE_MS
+
+//Delays
+#define SEND_ERROR_DELAY	1000 / portTICK_RATE_MS
+
 // Defaults (can be configured by master in real time)
 #define TEMP_POLL_RATE	1000 / portTICK_RATE_MS
 #define VOLT_POLL_RATE	25 / portTICK_RATE_MS
@@ -54,6 +59,9 @@
 #define byte_combine(msb, lsb) ((msb << 8) | lsb)
 //if it is time for the said msg to send
 #define execute_broadcast(msg_rate, i) ((msg_rate / BROADCAST_MS) % i == 0)
+//expects a uint16_t type
+#define extract_LSB(value) (value & 0x00FF)
+#define extract_MSB(value) ((value >> 8) & 0x00FF)
 
 //enums
 typedef enum {
