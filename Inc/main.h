@@ -88,8 +88,12 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define MCO_Pin GPIO_PIN_0
+#define MCO_GPIO_Port GPIOA
 #define VSTACK_SPI_SCK_Pin GPIO_PIN_1
 #define VSTACK_SPI_SCK_GPIO_Port GPIOA
+#define VCP_TX_Pin GPIO_PIN_2
+#define VCP_TX_GPIO_Port GPIOA
 #define VSTACK_SPI_SS_Pin GPIO_PIN_4
 #define VSTACK_SPI_SS_GPIO_Port GPIOA
 #define VSTACK_SPI_MISO_Pin GPIO_PIN_6
@@ -110,6 +114,14 @@ void Error_Handler(void);
 #define BMS_CAN_RX_GPIO_Port GPIOA
 #define BMS_CAN_TX_Pin GPIO_PIN_12
 #define BMS_CAN_TX_GPIO_Port GPIOA
+#define SWDIO_Pin GPIO_PIN_13
+#define SWDIO_GPIO_Port GPIOA
+#define SWCLK_Pin GPIO_PIN_14
+#define SWCLK_GPIO_Port GPIOA
+#define VCP_RX_Pin GPIO_PIN_15
+#define VCP_RX_GPIO_Port GPIOA
+#define LD3_Pin GPIO_PIN_3
+#define LD3_GPIO_Port GPIOB
 #define ORANGE_LED_Pin GPIO_PIN_5
 #define ORANGE_LED_GPIO_Port GPIOB
 #define RED_LED_Pin GPIO_PIN_6

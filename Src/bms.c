@@ -74,12 +74,14 @@ void initRTOSObjects() {
   bms.q_rx_can = xQueueCreate(CAN_RX_Q_SIZE, sizeof(CanRxMsgTypeDef));
   
   //start tasks
-  //xTaskCreate(task_txCan, "Transmit Can", CAN_TX_STACK_SIZE, NULL, CAN_TX_PRIORITY, NULL);
+  xTaskCreate(task_txCan, "Transmit Can", CAN_TX_STACK_SIZE, NULL, CAN_TX_PRIORITY, NULL);
+  xTaskCreate(task_CanProcess, "Process Can", CAN_RX_STACK_SIZE, NULL, CAN_RX_PRIORITY, NULL);
   xTaskCreate(task_bms_main, "Main Task", BMS_MAIN_STACK_SIZE, NULL, BMS_MAIN_PRIORITY, NULL);
   xTaskCreate(task_heartbeat, "Heartbeat", HEARTBEAT_STACK_SIZE, NULL, HEARTBEAT_PRIORITY, NULL);
-  //xTaskCreate(task_Master_WDawg, "Master WDawg", WDAWG_STACK_SIZE, NULL, WDAWG_PRIORITY, NULL);
+  xTaskCreate(task_Master_WDawg, "Master WDawg", WDAWG_STACK_SIZE, NULL, WDAWG_PRIORITY, NULL);
   //xTaskCreate(task_VSTACK, "VSTACK", VSTACK_STACK_SIZE, NULL, VSTACK_PRIORITY, NULL);
   //xTaskCreate(task_acquire_temp, "temp", ACQUIRE_TEMP_STACK_SIZE, NULL, ACQUIRE_TEMP_PRIORITY, NULL);
+  //TODO: only broadcast when in normal op state
   //xTaskCreate(task_broadcast, "broadcast", BROAD_STACK_SIZE, NULL, BROAD_PRIORITY, NULL);
 }
 
@@ -126,6 +128,11 @@ void initBMSobject() {
 		bms.temp.data[x] = 0;
 	}
 
+	wdawg.master_sem = xSemaphoreCreateBinary();
+	wdawg.new_msg = xTaskGetTickCount();
+
+	xSemaphoreGive(wdawg.master_sem); //allows it to be taken
+
   xSemaphoreGive(bms.state_sem);
   xSemaphoreGive(bms.param.sem);
 }
@@ -166,6 +173,7 @@ void task_bms_main() {
         break;
       case INIT:
         //TODO: establish contact with Vstack/temp sensors
+      	HAL_GPIO_WritePin(LPM_GPIO_Port, LPM_Pin, GPIO_PIN_SET);
         if (bms.connected && bms.vstack_con && bms.temp1_con &&
             bms.temp2_con) { //only move to normal op when everything is connected
           if (xSemaphoreTake(bms.state_sem, TIMEOUT) == pdPASS) {

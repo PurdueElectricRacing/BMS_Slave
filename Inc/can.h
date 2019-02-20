@@ -150,7 +150,6 @@ typedef struct {
 } CanRxMsgTypeDef;
 
 typedef struct {
-  TickType_t last_msg;
   TickType_t new_msg;
   SemaphoreHandle_t master_sem;
 } WatchDawg_t;

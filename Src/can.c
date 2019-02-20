@@ -43,7 +43,6 @@ Success_t send_generic_msg(uint16_t items, can_broadcast_t msg_type);
 ***************************************************************************/
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef* hcan) {
   CanRxMsgTypeDef rx;
-  TickType_t temp;
   CAN_RxHeaderTypeDef header;
   HAL_CAN_GetRxMessage(hcan, 0, &header, rx.Data);
   rx.DLC = header.DLC;
@@ -53,9 +52,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef* hcan) {
   //master watchdawg task
   if (xSemaphoreTakeFromISR(wdawg.master_sem, NULL) == pdPASS) {
     //semaphore successfully taken
-    temp = wdawg.new_msg;
     wdawg.new_msg = xTaskGetTickCountFromISR();
-    wdawg.last_msg = temp;
     xSemaphoreGiveFromISR(wdawg.master_sem, NULL); //give the sem back
   }
 }
@@ -81,18 +78,13 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef* hcan) {
 *     enter sleep mode
 ***************************************************************************/
 void task_Master_WDawg() {
-  wdawg.master_sem = xSemaphoreCreateBinary();
-  wdawg.last_msg = xTaskGetTickCount();
-  wdawg.new_msg = xTaskGetTickCount();
   TickType_t time_init = 0;
-  
-  xSemaphoreGive(wdawg.master_sem); //allows it to be taken
   
   while (1) {
     time_init = xTaskGetTickCount();
     if (xSemaphoreTake(wdawg.master_sem, WDAWG_BLOCK) == pdPASS) {
       //semaphore successfully taken
-      if ((wdawg.new_msg - wdawg.last_msg) > WDAWG_RATE) {
+      if ((xTaskGetTickCount() - wdawg.new_msg) > WDAWG_RATE) {
         //master is not responding go into shutdown
         bms.connected = 0;
         if (xSemaphoreTake(bms.state_sem, TIMEOUT) == pdPASS) {

@@ -90,10 +90,10 @@ osThreadId defaultTaskHandle;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
-static void MX_CAN1_Init(void);
-static void MX_SPI1_Init(void);
-static void MX_I2C1_Init(void);
 static void MX_USART2_UART_Init(void);
+static void MX_CAN1_Init(void);
+static void MX_I2C1_Init(void);
+static void MX_SPI1_Init(void);
 void StartDefaultTask(void const * argument);
 
 /* USER CODE BEGIN PFP */
@@ -133,10 +133,10 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_CAN1_Init();
-  MX_SPI1_Init();
-  MX_I2C1_Init();
   MX_USART2_UART_Init();
+  MX_CAN1_Init();
+  MX_I2C1_Init();
+  MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
   can_filter_init(&hcan1);
   HAL_CAN_Start(&hcan1);
@@ -423,16 +423,16 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, BLUE_LED_Pin|GREEN_LED_Pin|ORANGE_LED_Pin|RED_LED_Pin 
-                          |HEARTBEAT_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, BLUE_LED_Pin|GREEN_LED_Pin|LD3_Pin|ORANGE_LED_Pin 
+                          |RED_LED_Pin|HEARTBEAT_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(LPM_GPIO_Port, LPM_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : BLUE_LED_Pin GREEN_LED_Pin ORANGE_LED_Pin RED_LED_Pin 
-                           HEARTBEAT_Pin */
-  GPIO_InitStruct.Pin = BLUE_LED_Pin|GREEN_LED_Pin|ORANGE_LED_Pin|RED_LED_Pin 
-                          |HEARTBEAT_Pin;
+  /*Configure GPIO pins : BLUE_LED_Pin GREEN_LED_Pin LD3_Pin ORANGE_LED_Pin 
+                           RED_LED_Pin HEARTBEAT_Pin */
+  GPIO_InitStruct.Pin = BLUE_LED_Pin|GREEN_LED_Pin|LD3_Pin|ORANGE_LED_Pin 
+                          |RED_LED_Pin|HEARTBEAT_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
