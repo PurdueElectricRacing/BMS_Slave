@@ -87,10 +87,6 @@ void task_Master_WDawg() {
       if ((xTaskGetTickCount() - wdawg.new_msg) > WDAWG_RATE) {
         //master is not responding go into shutdown
         bms.connected = 0;
-        if (xSemaphoreTake(bms.state_sem, TIMEOUT) == pdPASS) {
-          bms.state = SHUTDOWN;
-          xSemaphoreGive(bms.state_sem); //release sem
-        }
       }
       xSemaphoreGive(wdawg.master_sem);
     }
@@ -176,6 +172,10 @@ void task_CanProcess() {
             //wakeup message send ack
             send_ack();
             bms.connected = 1;
+            if (xSemaphoreTake(bms.state_sem, TIMEOUT) == pdPASS) {
+							bms.state = LOW_POWER;
+							xSemaphoreGive(bms.state_sem); //release sem
+						}
           } else if (rx_can.Data[0] == 2) {
             //shutdown message was received send ack and shutdown
             send_ack();
@@ -199,6 +199,7 @@ void task_CanProcess() {
           break;
         case ID_MAS_WDAWG:
         	//do nothing taken care of by wdawg task
+        	send_ack();
         	break;
         case ID_MAS_CONFIG:
         	process_slave_param_set(&rx_can);
@@ -234,19 +235,20 @@ void task_broadcast() {
   uint16_t i = 0;
   while (1) {
     time_init = xTaskGetTickCount();
-    if (bms.param.volt_msg_en == ASSERTED) {
-      if (execute_broadcast(bms.param.volt_msg_rate, i)) {
-        send_volt_msg();
-      }
-    }
-    vTaskDelay(BROADCAST_DELAY);
-    if (bms.param.temp_msg_en == ASSERTED) {
-      if (execute_broadcast(bms.param.temp_msg_rate, i)) {
-        send_temp_msg();
-      }
-    }
+    if (bms.state == NORMAL_OP) {
+    	if (bms.param.volt_msg_en == ASSERTED) {
+				if (execute_broadcast(bms.param.volt_msg_rate, i)) {
+					send_volt_msg();
+				}
+			}
+			if (bms.param.temp_msg_en == ASSERTED) {
+				if (execute_broadcast(bms.param.temp_msg_rate, i)) {
+					send_temp_msg();
+				}
+			}
 
-    i++;
+			i++;
+    }
     vTaskDelayUntil(&time_init, BROADCAST_RATE);
   }
 }

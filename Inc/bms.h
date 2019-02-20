@@ -30,23 +30,21 @@
 #define BMS_MAIN_PRIORITY   1
 #define HEARTBEAT_STACK_SIZE 128
 #define HEARTBEAT_PRIORITY  1
-
+#define ERROR_CHECK_STACK_SIZE      128
+#define ERROR_CHECK_RATE_PRIORITY   1
 
 //Rates
 #define TIMEOUT         5 / portTICK_RATE_MS
 #define HEARTBEAT_RATE  750 / portTICK_RATE_MS
 #define BMS_MAIN_RATE       20 / portTICK_RATE_MS
+#define ERROR_CHECK_RATE    500 / portTICK_RATE_MS
 
 //Delays
 #define SEND_ERROR_DELAY	1000 / portTICK_RATE_MS
 
 // Defaults (can be configured by master in real time)
-#define TEMP_POLL_RATE	1000 / portTICK_RATE_MS
-#define VOLT_POLL_RATE	25 / portTICK_RATE_MS
-#define BROADCAST_MS    50
-#define BROADCAST_RATE  BROADCAST_MS / portTICK_RATE_MS //fastest broadcast is 20hz
-//used to keep canrxq from overflowing
-#define BROADCAST_DELAY (BROADCAST_MS / 10) / portTICK_RATE_MS
+#define TEMP_POLL_RATE	1000
+#define VOLT_POLL_RATE	25
 
 //Macros
 #define bitwise_or(shift, mask, logical) (((uint8_t) logical << shift) | mask)
@@ -58,7 +56,7 @@
 #define bit_extract(mask, shift, byte) (byte & mask) >> shift
 #define byte_combine(msb, lsb) ((msb << 8) | lsb)
 //if it is time for the said msg to send
-#define execute_broadcast(msg_rate, i) ((msg_rate / BROADCAST_MS) % i == 0)
+#define execute_broadcast(msg_rate, i) (i % (msg_rate / BROADCAST_MS) == 0)
 //expects a uint16_t type
 #define extract_LSB(value) (value & 0x00FF)
 #define extract_MSB(value) ((value >> 8) & 0x00FF)

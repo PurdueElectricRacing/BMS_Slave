@@ -49,19 +49,23 @@
 #define FAULT_TEMP2_SHIFT     2
 
 //rates
-#define CAN_TX_RATE 50 / portTICK_RATE_MS //send at 20Hz
-#define CAN_RX_RATE 50 / portTICK_RATE_MS //send at 20Hz
+#define CAN_TX_RATE 5 / portTICK_RATE_MS //send at 20Hz
+#define CAN_RX_RATE 20 / portTICK_RATE_MS //send at 20Hz
 #define WDAWG_RATE  5000 / portTICK_RATE_MS //5 second timeout value
 #define WDAWG_BLOCK 10 / portTICK_RATE_MS
+#define BROADCAST_MS    25
+#define BROADCAST_RATE  BROADCAST_MS / portTICK_RATE_MS //fastest broadcast is 20hz
+//used to keep canrxq from overflowing
+#define BROADCAST_DELAY (BROADCAST_MS / 10) / portTICK_RATE_MS
 
 //TX RTOS
 #define CAN_TX_STACK_SIZE   128
-#define CAN_TX_Q_SIZE       8
+#define CAN_TX_Q_SIZE       20
 #define CAN_TX_PRIORITY     1
 
 //RX Process RTOS
 #define CAN_RX_STACK_SIZE   128
-#define CAN_RX_Q_SIZE       8
+#define CAN_RX_Q_SIZE       10
 #define CAN_RX_PRIORITY     1
 
 //Broadcast Process RTOS

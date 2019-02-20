@@ -18,6 +18,7 @@
 
 Success_t send_faults();
 Success_t clear_faults();
+void debug_lights(flag_t orange, flag_t red, flag_t green, flag_t blue);
 
 /***************************************************************************
 *
@@ -52,6 +53,53 @@ void task_heartbeat() {
 *
 *     Function Information
 *
+*     Name of Function: task_error_check
+*
+*     Programmer's Name: Matt Flanagan
+*
+*     Function Return Type: None
+*
+*     Parameters (list data type, name, and comment one per line):
+*       1. None
+*
+*      Global Dependents:
+*       1. bms.fault
+*
+*     Function Description: Checks each error case at  ERROR_CHECK_RATE and
+*     will fault the BMS if an error has been detected.
+*
+***************************************************************************/
+void task_error_check() {
+  TickType_t time_init = 0;
+  uint8_t i = 0;
+  fault_t fault = NORMAL;
+  while (1) {
+    time_init = xTaskGetTickCount();
+    if (bms.state == NORMAL_OP) {
+			if (bms.connected == FAULTED ||
+					bms.temp1_con == FAULTED ||
+					bms.temp2_con == FAULTED ||
+					bms.vstack_con == FAULTED) {
+				fault = FAULTED;
+			}
+
+			if (fault == FAULTED) {
+				if (xSemaphoreTake(bms.state_sem, TIMEOUT) == pdPASS) {
+					bms.state = ERROR_BMS;
+					xSemaphoreGive(bms.state_sem); //release sem
+				}
+			}
+    }
+
+    vTaskDelayUntil(&time_init, ERROR_CHECK_RATE);
+  }
+}
+
+
+/***************************************************************************
+*
+*     Function Information
+*
 *     Name of Function: initRTOSObjects
 *
 *     Programmer's Name: Matt Flanagan
@@ -81,8 +129,9 @@ void initRTOSObjects() {
   xTaskCreate(task_Master_WDawg, "Master WDawg", WDAWG_STACK_SIZE, NULL, WDAWG_PRIORITY, NULL);
   //xTaskCreate(task_VSTACK, "VSTACK", VSTACK_STACK_SIZE, NULL, VSTACK_PRIORITY, NULL);
   //xTaskCreate(task_acquire_temp, "temp", ACQUIRE_TEMP_STACK_SIZE, NULL, ACQUIRE_TEMP_PRIORITY, NULL);
-  //TODO: only broadcast when in normal op state
-  //xTaskCreate(task_broadcast, "broadcast", BROAD_STACK_SIZE, NULL, BROAD_PRIORITY, NULL);
+  xTaskCreate(task_broadcast, "broadcast", BROAD_STACK_SIZE, NULL, BROAD_PRIORITY, NULL);
+  xTaskCreate(task_error_check, "Error Check", ERROR_CHECK_STACK_SIZE, NULL, ERROR_CHECK_RATE_PRIORITY, NULL);
+
 }
 
 /***************************************************************************
@@ -111,9 +160,9 @@ void initBMSobject() {
   bms.state_sem = xSemaphoreCreateBinary();
   bms.connected = FAULTED;
   bms.passive_en = FAULTED;
-  bms.temp1_con = FAULTED;
+  bms.temp1_con = NORMAL; //todo: change when integrated
   bms.temp2_con = NORMAL; //unused for senior design TODO: fix when it's real
-  bms.vstack_con = FAULTED;
+  bms.vstack_con = NORMAL; //todo: change when integrated
 
   bms.param.sem = xSemaphoreCreateBinary();
   bms.param.temp_msg_en = ASSERTED;
@@ -159,12 +208,12 @@ void initBMSobject() {
 ***************************************************************************/
 void task_bms_main() {
 	TickType_t time_init = 0;
-	uint8_t i = 0;
   while (1) {
     //just chilling
   	time_init = xTaskGetTickCount();
     switch (bms.state) {
       case LOW_POWER:
+      	debug_lights(0, 0, 0, 0);
         //must have been woken up by interrupt
         if (xSemaphoreTake(bms.state_sem, TIMEOUT) == pdPASS) {
           bms.state = INIT;
@@ -172,7 +221,8 @@ void task_bms_main() {
         }
         break;
       case INIT:
-        //TODO: establish contact with Vstack/temp sensors
+      	debug_lights(0, 0, 0, 1);
+      	//TODO: establish contact with Vstack/temp sensors
       	HAL_GPIO_WritePin(LPM_GPIO_Port, LPM_Pin, GPIO_PIN_SET);
         if (bms.connected && bms.vstack_con && bms.temp1_con &&
             bms.temp2_con) { //only move to normal op when everything is connected
@@ -183,11 +233,15 @@ void task_bms_main() {
         }
         break;
       case NORMAL_OP:
+      	debug_lights(0, 0, 1, 0);
+      	//induce error
+      	bms.temp1_con = FAULTED;
         //TODO: read from all of the sensors
         //TODO: send data to master
         //TODO: manage passive balancing if necessary
         break;
       case ERROR_BMS:
+      	debug_lights(0, 0, 1, 1);
       	if (bms.connected) {
         	send_faults();
         	vTaskDelay(SEND_ERROR_DELAY);
@@ -200,24 +254,18 @@ void task_bms_main() {
       	}
         break;
       case SHUTDOWN:
+      	debug_lights(0, 1, 0, 0);
         //tell the WDAWG to disable
+      	//delete uneccessary tasks
         HAL_GPIO_WritePin(LPM_GPIO_Port, LPM_Pin, GPIO_PIN_RESET); //active low
         //todo: disable the SPI/I2C periphs so only wakeup on can
         //enter sleep mode and wait for interrupt to wake back up
-        if (xSemaphoreTake(bms.state_sem, TIMEOUT) == pdPASS) {
-          bms.state = LOW_POWER;
-          xSemaphoreGive(bms.state_sem); //release sem
-        }
         HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
         break;
       default:
         break;
     }
 
-    if (i % 100 == 0) {
-			HAL_GPIO_TogglePin(BLUE_LED_GPIO_Port, BLUE_LED_Pin);
-		}
-    i++;
 		vTaskDelayUntil(&time_init, BMS_MAIN_RATE);
   }
   //never get here
@@ -284,4 +332,40 @@ Success_t send_faults() {
   xQueueSendToBack(bms.q_tx_can, &msg, 100);
   return SUCCESSFUL;
 }
+
+void debug_lights(flag_t orange, flag_t red, flag_t green, flag_t blue) {
+	if (orange == ASSERTED) {
+		HAL_GPIO_WritePin(ORANGE_LED_GPIO_Port, ORANGE_LED_Pin, GPIO_PIN_SET);
+	} else {
+		HAL_GPIO_WritePin(ORANGE_LED_GPIO_Port, ORANGE_LED_Pin, GPIO_PIN_RESET);
+	}
+	if (red == ASSERTED) {
+		HAL_GPIO_WritePin(RED_LED_GPIO_Port, RED_LED_Pin, GPIO_PIN_SET);
+	} else {
+		HAL_GPIO_WritePin(RED_LED_GPIO_Port, RED_LED_Pin, GPIO_PIN_RESET);
+	}
+	if (green == ASSERTED) {
+		HAL_GPIO_WritePin(GREEN_LED_GPIO_Port, GREEN_LED_Pin, GPIO_PIN_SET);
+	} else {
+		HAL_GPIO_WritePin(GREEN_LED_GPIO_Port, GREEN_LED_Pin, GPIO_PIN_RESET);
+	}
+	if (blue == ASSERTED) {
+		HAL_GPIO_WritePin(BLUE_LED_GPIO_Port, BLUE_LED_Pin, GPIO_PIN_SET);
+	} else {
+		HAL_GPIO_WritePin(BLUE_LED_GPIO_Port, BLUE_LED_Pin, GPIO_PIN_RESET);
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 
