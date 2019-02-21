@@ -71,7 +71,6 @@ void task_heartbeat() {
 ***************************************************************************/
 void task_error_check() {
   TickType_t time_init = 0;
-  uint8_t i = 0;
   fault_t fault = NORMAL;
   while (1) {
     time_init = xTaskGetTickCount();
@@ -235,7 +234,6 @@ void task_bms_main() {
       case NORMAL_OP:
       	debug_lights(0, 0, 1, 0);
       	//induce error
-      	bms.temp1_con = FAULTED;
         //TODO: read from all of the sensors
         //TODO: send data to master
         //TODO: manage passive balancing if necessary

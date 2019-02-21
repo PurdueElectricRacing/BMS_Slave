@@ -168,18 +168,18 @@ void task_CanProcess() {
       switch (rx_can.StdId) {
         case ID_MAS_POW_CMD:
           //check if you need to go to sleep or wake up
-          if (rx_can.Data[0] == 1) {
+          if (rx_can.Data[0] == POWER_ON && bms.state != ERROR_BMS) {
             //wakeup message send ack
             send_ack();
-            bms.connected = 1;
+            bms.connected = NORMAL;
             if (xSemaphoreTake(bms.state_sem, TIMEOUT) == pdPASS) {
 							bms.state = LOW_POWER;
 							xSemaphoreGive(bms.state_sem); //release sem
 						}
-          } else if (rx_can.Data[0] == 2) {
+          } else if (rx_can.Data[0] == POWER_OFF) {
             //shutdown message was received send ack and shutdown
             send_ack();
-            bms.connected = 0;
+            bms.connected = FAULTED;
             if (xSemaphoreTake(bms.state_sem, TIMEOUT) == pdPASS) {
               bms.state = SHUTDOWN;
               xSemaphoreGive(bms.state_sem); //release sem
@@ -188,7 +188,7 @@ void task_CanProcess() {
           break;
         case ID_MAS_PASSIVE:
           //see if this pertains to you and then toggle passive balancing if so
-          if (rx_can.Data[0] == ID_SLAVE) {
+          if (rx_can.Data[0] == ID_SLAVE && bms.state == NORMAL_OP) {
             bms.passive_en = !bms.passive_en;
             if (bms.passive_en == 0) {
               //todo: shutdown_passive();
@@ -198,7 +198,6 @@ void task_CanProcess() {
           }
           break;
         case ID_MAS_WDAWG:
-        	//do nothing taken care of by wdawg task
         	send_ack();
         	break;
         case ID_MAS_CONFIG:
@@ -349,11 +348,11 @@ Success_t process_slave_param_set(CanRxMsgTypeDef* rx_can) {
   	volt = byte_combine(rx_can->Data[1], rx_can->Data[2]);
   	temp = byte_combine(rx_can->Data[3], rx_can->Data[4]);
 
-  	if (volt != DEFAULT) {
+  	if (volt > VOLT_MSG_RATE) {
   		bms.param.volt_msg_rate = volt;
   	}
 
-  	if (temp != DEFAULT) {
+  	if (temp > TEMP_MSG_RATE) {
   		bms.param.temp_msg_rate = temp;
   	}
 

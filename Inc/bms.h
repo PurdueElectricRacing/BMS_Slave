@@ -47,7 +47,7 @@
 #define VOLT_POLL_RATE	25
 
 //Macros
-#define bitwise_or(shift, mask, logical) (((uint8_t) logical << shift) | mask)
+#define bitwise_or(shift, mask, logical) (((uint8_t) logical << shift) & mask)
 #define max(a,b) \
    ({ __typeof__ (a) _a = (a); \
        __typeof__ (b) _b = (b); \
@@ -71,6 +71,11 @@ typedef enum flag_state {
   ASSERTED = 1,
   DEASSERTED = 0,
 } flag_t;
+
+typedef enum power_state {
+  POWER_ON = 0,
+  POWER_OFF = 1,
+} powercmd_t;
 
 //structures
 enum bms_slave_state {
