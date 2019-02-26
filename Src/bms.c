@@ -127,7 +127,7 @@ void initRTOSObjects() {
   xTaskCreate(task_heartbeat, "Heartbeat", HEARTBEAT_STACK_SIZE, NULL, HEARTBEAT_PRIORITY, NULL);
   xTaskCreate(task_Master_WDawg, "Master WDawg", WDAWG_STACK_SIZE, NULL, WDAWG_PRIORITY, NULL);
   //xTaskCreate(task_VSTACK, "VSTACK", VSTACK_STACK_SIZE, NULL, VSTACK_PRIORITY, NULL);
-  //xTaskCreate(task_acquire_temp, "temp", ACQUIRE_TEMP_STACK_SIZE, NULL, ACQUIRE_TEMP_PRIORITY, NULL);
+  xTaskCreate(task_acquire_temp, "temp", ACQUIRE_TEMP_STACK_SIZE, NULL, ACQUIRE_TEMP_PRIORITY, NULL);
   xTaskCreate(task_broadcast, "broadcast", BROAD_STACK_SIZE, NULL, BROAD_PRIORITY, NULL);
   xTaskCreate(task_error_check, "Error Check", ERROR_CHECK_STACK_SIZE, NULL, ERROR_CHECK_RATE_PRIORITY, NULL);
 
@@ -158,7 +158,7 @@ void initBMSobject() {
   bms.i2c = &hi2c1;
   bms.state_sem = xSemaphoreCreateBinary();
   bms.connected = FAULTED;
-  bms.passive_en = FAULTED;
+  bms.passive_en = DEASSERTED;
   bms.temp1_con = NORMAL; //todo: change when integrated
   bms.temp2_con = NORMAL; //unused for senior design TODO: fix when it's real
   bms.vstack_con = NORMAL; //todo: change when integrated
@@ -233,15 +233,14 @@ void task_bms_main() {
         break;
       case NORMAL_OP:
       	debug_lights(0, 0, 1, 0);
-      	//induce error
         //TODO: read from all of the sensors
         //TODO: send data to master
         //TODO: manage passive balancing if necessary
         break;
       case ERROR_BMS:
       	debug_lights(0, 0, 1, 1);
+      	send_faults();
       	if (bms.connected) {
-        	send_faults();
         	vTaskDelay(SEND_ERROR_DELAY);
       	} else {
       		//if master no longer connected shutdown

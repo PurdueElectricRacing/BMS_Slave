@@ -17,9 +17,9 @@
 
 //used to set the internal address of can messages so Master knows who is sending
 #ifdef SLAVE_ONE
-#define ID_SLAVE  0x1
+#define ID_SLAVE  0x0
 #elif SLAVE_TWO
-#define ID_SLAVE  0x2
+#define ID_SLAVE  0x1
 #endif
 //IDs
 //Master -> Slave

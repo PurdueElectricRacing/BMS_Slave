@@ -126,7 +126,7 @@ typedef struct {
   fault_t           vstack_con; //connected to the vstack
   fault_t           temp1_con;
   fault_t           temp2_con;
-  fault_t           passive_en;
+  flag_t           passive_en;
   
   params_t 					param;
 
