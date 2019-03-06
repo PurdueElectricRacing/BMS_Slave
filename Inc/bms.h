@@ -40,11 +40,11 @@
 #define ERROR_CHECK_RATE    500 / portTICK_RATE_MS
 
 //Delays
-#define SEND_ERROR_DELAY	1000 / portTICK_RATE_MS
+#define SEND_ERROR_DELAY  1000 / portTICK_RATE_MS
 
 // Defaults (can be configured by master in real time)
-#define TEMP_POLL_RATE	1000
-#define VOLT_POLL_RATE	25
+#define TEMP_POLL_RATE  1000
+#define VOLT_POLL_RATE  25
 
 //Macros
 #define bitwise_or(shift, mask, logical) (((uint8_t) logical << shift) & mask)
@@ -96,30 +96,30 @@ typedef struct {
   //broadcasts
   flag_t volt_msg_en;
   flag_t temp_msg_en;
-
+  
   //rates can be max BROADCAST_RATE hz and can be any integer multiple of that
   uint16_t volt_msg_rate;
   uint16_t temp_msg_rate;
-
+  
   SemaphoreHandle_t sem;
 } params_t;
 
 typedef struct {
-	  SemaphoreHandle_t sem;
-	  int16_t data[NUM_TEMP];
-}temp_t;
+  SemaphoreHandle_t sem;
+  int16_t data[NUM_TEMP];
+} temp_t;
 
 typedef struct {
-	  SemaphoreHandle_t sem;
-	  uint16_t data[NUM_VTAPS];
-}vtap_t;
+  SemaphoreHandle_t sem;
+  uint16_t data[NUM_VTAPS];
+} vtap_t;
 
 //Main BMS structure that holds can handles and all of the queues
 typedef struct {
   CAN_HandleTypeDef* can;
   I2C_HandleTypeDef* i2c;
   SPI_HandleTypeDef* spi;
-
+  
   QueueHandle_t     q_rx_can;
   QueueHandle_t     q_tx_can;
   fault_t           connected; //used to determine if connected to master
@@ -128,11 +128,11 @@ typedef struct {
   fault_t           temp2_con;
   flag_t           passive_en;
   
-  params_t 					param;
-
-  vtap_t						vtap;
-  temp_t						temp;
-
+  params_t          param;
+  
+  vtap_t            vtap;
+  temp_t            temp;
+  
   SemaphoreHandle_t state_sem;
   enum bms_slave_state state;
   //might not need q to receive since polling TBD

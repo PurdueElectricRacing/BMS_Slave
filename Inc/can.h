@@ -24,24 +24,24 @@
 //IDs
 //Master -> Slave
 #define ID_MAS_POW_CMD        0x600
-#define ID_MAS_CONFIG  				0x601
-#define ID_MAS_PASSIVE   			0x603
-#define ID_MAS_WDAWG					0x604
+#define ID_MAS_CONFIG         0x601
+#define ID_MAS_PASSIVE        0x603
+#define ID_MAS_WDAWG          0x604
 
 //Slave -> Master
-#define ID_SLAVE_ACK					0x640
+#define ID_SLAVE_ACK          0x640
 #define ID_SLAVE_FAULT_CODE   0x641
-#define ID_SLAVE_VOLT_MSG			0x642
-#define ID_SLAVE_TEMP_MSG			0x643
+#define ID_SLAVE_VOLT_MSG     0x642
+#define ID_SLAVE_TEMP_MSG     0x643
 
 #define MACRO_MSG_LENGTH          7
 #define GENERIC_MSG_LENGTH        8
 #define VALUES_PER_MSG            3
 #define PARAM_RES_MSG_LENGTH      3
-#define ERROR_MSG_LENGTH					2
+#define ERROR_MSG_LENGTH          2
 
 //Masks
-#define FAULT_VOLT_MASK      	0x01
+#define FAULT_VOLT_MASK       0x01
 #define FAULT_TEMP1_MASK      0x02
 #define FAULT_TEMP2_MASK      0x04
 #define FAULT_VOLT_SHIFT      0
@@ -88,15 +88,15 @@
 
 //enums
 enum params_enum {
-	VOLT_MSG_EN 	= 0,
-	TEMP_MSG_EN 	= 1,
-	VOLT_MSG_RATE = 2,
-	TEMP_MSG_RATE = 3
+  VOLT_MSG_EN   = 0,
+  TEMP_MSG_EN   = 1,
+  VOLT_MSG_RATE = 2,
+  TEMP_MSG_RATE = 3
 };
 
 enum defaults_enum {
-	DEFAULT = 0,
-	CHANGE = 1
+  DEFAULT = 0,
+  CHANGE = 1
 };
 
 typedef enum dcan_broadcast {

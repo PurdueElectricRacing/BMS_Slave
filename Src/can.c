@@ -168,14 +168,15 @@ void task_CanProcess() {
       switch (rx_can.StdId) {
         case ID_MAS_POW_CMD:
           //check if you need to go to sleep or wake up
-          if (rx_can.Data[0] == POWER_ON && bms.state != ERROR_BMS) {
+        	if (rx_can.Data[0] == POWER_ON) {
+        	//          if (rx_can.Data[0] == POWER_ON && bms.state != ERROR_BMS) {
             //wakeup message send ack
             send_ack();
             bms.connected = NORMAL;
             if (xSemaphoreTake(bms.state_sem, TIMEOUT) == pdPASS) {
-							bms.state = LOW_POWER;
-							xSemaphoreGive(bms.state_sem); //release sem
-						}
+              bms.state = LOW_POWER;
+              xSemaphoreGive(bms.state_sem); //release sem
+            }
           } else if (rx_can.Data[0] == POWER_OFF) {
             //shutdown message was received send ack and shutdown
             send_ack();
@@ -198,11 +199,11 @@ void task_CanProcess() {
           }
           break;
         case ID_MAS_WDAWG:
-        	send_ack();
-        	break;
+          send_ack();
+          break;
         case ID_MAS_CONFIG:
-        	process_slave_param_set(&rx_can);
-        	break;
+          process_slave_param_set(&rx_can);
+          break;
       }
     }
     
@@ -235,18 +236,18 @@ void task_broadcast() {
   while (1) {
     time_init = xTaskGetTickCount();
     if (bms.state == NORMAL_OP) {
-    	if (bms.param.volt_msg_en == ASSERTED) {
-				if (execute_broadcast(bms.param.volt_msg_rate, i)) {
-					send_volt_msg();
-				}
-			}
-			if (bms.param.temp_msg_en == ASSERTED) {
-				if (execute_broadcast(bms.param.temp_msg_rate, i)) {
-					send_temp_msg();
-				}
-			}
-
-			i++;
+      if (bms.param.volt_msg_en == ASSERTED) {
+        if (execute_broadcast(bms.param.volt_msg_rate, i)) {
+          send_volt_msg();
+        }
+      }
+      if (bms.param.temp_msg_en == ASSERTED) {
+        if (execute_broadcast(bms.param.temp_msg_rate, i)) {
+          send_temp_msg();
+        }
+      }
+      
+      i++;
     }
     vTaskDelayUntil(&time_init, BROADCAST_RATE);
   }
@@ -342,25 +343,25 @@ Success_t process_slave_param_set(CanRxMsgTypeDef* rx_can) {
   int16_t temp = 0;
   uint16_t volt = 0;
   if (xSemaphoreTake(bms.param.sem, TIMEOUT) == pdTRUE) {
-  	bms.param.volt_msg_en = bit_extract(CONFIG_VOLT_MSG_MASK, CONFIG_VOLT_MSG_SHIFT, rx_can->Data[0]);
-  	bms.param.temp_msg_en = bit_extract(CONFIG_TEMP_MSG_MASK, CONFIG_TEMP_MSG_SHIFT, rx_can->Data[0]);
-
-  	volt = byte_combine(rx_can->Data[1], rx_can->Data[2]);
-  	temp = byte_combine(rx_can->Data[3], rx_can->Data[4]);
-
-  	if (volt > VOLT_MSG_RATE) {
-  		bms.param.volt_msg_rate = volt;
-  	}
-
-  	if (temp > TEMP_MSG_RATE) {
-  		bms.param.temp_msg_rate = temp;
-  	}
-
+    bms.param.volt_msg_en = bit_extract(CONFIG_VOLT_MSG_MASK, CONFIG_VOLT_MSG_SHIFT, rx_can->Data[0]);
+    bms.param.temp_msg_en = bit_extract(CONFIG_TEMP_MSG_MASK, CONFIG_TEMP_MSG_SHIFT, rx_can->Data[0]);
+    
+    volt = byte_combine(rx_can->Data[1], rx_can->Data[2]);
+    temp = byte_combine(rx_can->Data[3], rx_can->Data[4]);
+    
+    if (volt > VOLT_MSG_RATE) {
+      bms.param.volt_msg_rate = volt;
+    }
+    
+    if (temp > TEMP_MSG_RATE) {
+      bms.param.temp_msg_rate = temp;
+    }
+    
     xSemaphoreGive(bms.param.sem);
   } else {
     status = FAILURE;
   }
-
+  
   return status;
 }
 
@@ -383,65 +384,65 @@ Success_t send_generic_msg(uint16_t items, can_broadcast_t msg_type) {
   CanTxMsgTypeDef msg;
   msg.IDE = CAN_ID_STD;
   msg.RTR = CAN_RTR_DATA;
-
+  
   switch (msg_type) {
     case VOLT_MSG:
-			for (x = 0; x < NUM_VTAPS; x = x + VALUES_PER_MSG) {
-				msg.DLC = GENERIC_MSG_LENGTH;
-				msg.StdId = ID_SLAVE_VOLT_MSG;
-				msg.Data[0] = i;  //slave id
-				msg.Data[1] = x / VALUES_PER_MSG; //row
-				msg.Data[2] = extract_MSB(bms.vtap.data[x]);
-				msg.Data[3] = extract_LSB(bms.vtap.data[x]);
-				if (x + 1 < NUM_VTAPS) {
-					msg.Data[4] = extract_MSB(bms.vtap.data[x + 1]);
-					msg.Data[5] = extract_LSB(bms.vtap.data[x + 1]);
-				} else {
-					msg.Data[4] = 0;
-					msg.Data[5] = 0;
-				}
-				if (x + 2 < NUM_VTAPS) {
-					msg.Data[6] = extract_MSB(bms.vtap.data[x + 2]);
-					msg.Data[7] = extract_LSB(bms.vtap.data[x + 2]);
-				} else {
-					msg.Data[6] = 0;
-					msg.Data[7] = 0;
-				}
-
-				if (xQueueSendToBack(bms.q_tx_can, &msg, 100) != pdPASS) {
-					status = FAILURE;
-				}
-			}
+      for (x = 0; x < NUM_VTAPS; x = x + VALUES_PER_MSG) {
+        msg.DLC = GENERIC_MSG_LENGTH;
+        msg.StdId = ID_SLAVE_VOLT_MSG;
+        msg.Data[0] = i;  //slave id
+        msg.Data[1] = x / VALUES_PER_MSG; //row
+        msg.Data[2] = extract_MSB(bms.vtap.data[x]);
+        msg.Data[3] = extract_LSB(bms.vtap.data[x]);
+        if (x + 1 < NUM_VTAPS) {
+          msg.Data[4] = extract_MSB(bms.vtap.data[x + 1]);
+          msg.Data[5] = extract_LSB(bms.vtap.data[x + 1]);
+        } else {
+          msg.Data[4] = 0;
+          msg.Data[5] = 0;
+        }
+        if (x + 2 < NUM_VTAPS) {
+          msg.Data[6] = extract_MSB(bms.vtap.data[x + 2]);
+          msg.Data[7] = extract_LSB(bms.vtap.data[x + 2]);
+        } else {
+          msg.Data[6] = 0;
+          msg.Data[7] = 0;
+        }
+        
+        if (xQueueSendToBack(bms.q_tx_can, &msg, 100) != pdPASS) {
+          status = FAILURE;
+        }
+      }
       break;
     case TEMP_MSG:
-			for (x = 0; x < NUM_TEMP; x = x + VALUES_PER_MSG) {
-				msg.DLC = MACRO_MSG_LENGTH;
-				msg.StdId = ID_SLAVE_TEMP_MSG;
-				msg.Data[0] = i;  //slave id
-				msg.Data[1] = x / VALUES_PER_MSG; //row
-				msg.Data[2] = extract_MSB(bms.temp.data[x]);
-				msg.Data[3] = extract_LSB(bms.temp.data[x]);
-				if (x + 1 < NUM_TEMP) {
-					msg.Data[4] = extract_MSB(bms.temp.data[x + 1]);
-					msg.Data[5] = extract_LSB(bms.temp.data[x + 1]);
-				} else {
-					msg.Data[4] = 0;
-					msg.Data[5] = 0;
-				}
-				if (x + 2 < NUM_TEMP) {
-					msg.Data[6] = extract_MSB(bms.temp.data[x + 2]);
-					msg.Data[7] = extract_LSB(bms.temp.data[x + 2]);
-				} else {
-					msg.Data[6] = 0;
-					msg.Data[7] = 0;
-				}
-
-				if (xQueueSendToBack(bms.q_tx_can, &msg, 100) != pdPASS) {
-					status = FAILURE;
-				}
-			}
+      for (x = 0; x < NUM_TEMP; x = x + VALUES_PER_MSG) {
+        msg.DLC = MACRO_MSG_LENGTH;
+        msg.StdId = ID_SLAVE_TEMP_MSG;
+        msg.Data[0] = i;  //slave id
+        msg.Data[1] = x / VALUES_PER_MSG; //row
+        msg.Data[2] = extract_MSB(bms.temp.data[x]);
+        msg.Data[3] = extract_LSB(bms.temp.data[x]);
+        if (x + 1 < NUM_TEMP) {
+          msg.Data[4] = extract_MSB(bms.temp.data[x + 1]);
+          msg.Data[5] = extract_LSB(bms.temp.data[x + 1]);
+        } else {
+          msg.Data[4] = 0;
+          msg.Data[5] = 0;
+        }
+        if (x + 2 < NUM_TEMP) {
+          msg.Data[6] = extract_MSB(bms.temp.data[x + 2]);
+          msg.Data[7] = extract_LSB(bms.temp.data[x + 2]);
+        } else {
+          msg.Data[6] = 0;
+          msg.Data[7] = 0;
+        }
+        
+        if (xQueueSendToBack(bms.q_tx_can, &msg, 100) != pdPASS) {
+          status = FAILURE;
+        }
+      }
       break;
   }
-
+  
   return status;
 }
