@@ -44,7 +44,7 @@ void task_acquire_temp() {
         while (HAL_I2C_GetState(&hi2c1) != HAL_I2C_STATE_READY)
 				{
 				}
-        HAL_Delay(150);
+//        vTaskDelay(READ_REQ_WAIT);
         read_byte = set_address(ID_TEMP_1, READ_ENABLE);
         HAL_I2C_Master_Receive_IT(&hi2c1,(uint16_t) read_byte, &temp_array[0], READ_MSG_SIZE);
         while (HAL_I2C_GetState(&hi2c1) != HAL_I2C_STATE_READY)

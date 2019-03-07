@@ -20,6 +20,8 @@ Success_t send_faults();
 Success_t clear_faults();
 void debug_lights(flag_t orange, flag_t red, flag_t green, flag_t blue);
 
+char buffer[400];
+
 /***************************************************************************
 *
 *     Function Information
@@ -259,6 +261,9 @@ void task_bms_main() {
         HAL_GPIO_WritePin(LPM_GPIO_Port, LPM_Pin, GPIO_PIN_RESET); //active low
         //todo: disable the SPI/I2C periphs so only wakeup on can
         //enter sleep mode and wait for interrupt to wake back up
+//        vTaskGetRunTimeStats(&buffer);
+//        FILE * fptr = fopen("runtimestats", "w");
+//        fwrite(&buffer, sizeof(char), 400, fptr);
         HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
         break;
       default:

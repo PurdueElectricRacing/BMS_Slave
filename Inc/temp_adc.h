@@ -19,6 +19,7 @@
 #define ACQUIRE_TEMP_STACK_SIZE 128
 #define ACQUIRE_TEMP_PRIORITY   1
 #define I2C_TIMEOUT             100 / portTICK_RATE_MS
+#define READ_REQ_WAIT						150 / portTICK_RATE_MS
 
 
 //writing
