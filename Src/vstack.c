@@ -1,10 +1,10 @@
-/*
- * ltc6811.c
- *
- *  Created on: Feb 10, 2019
- *      Author: Matt Flanagan
- */
-
+///*
+// * ltc6811.c
+// *
+// *  Created on: Feb 10, 2019
+// *      Author: Matt Flanagan
+// */
+//
 #include "vstack.h"
 #include "stm32l4xx_hal_spi.h"
 
@@ -119,104 +119,103 @@ void task_VSTACK() {
     vTaskDelayUntil(&time_init, VSTACK_RATE);
   }
 }
-
-HAL_StatusTypeDef init_LTC6811() {
-  //this function is used to initiate communication to the LTC6811 chip
-
-  return HAL_OK;
-}
-
-//Calculates PEC or CRC
-//TODO might want to make LTCHandle_t a pointer
-uint16_t LTC6811Pec(uint8_t *data, uint8_t len) {
-  uint16_t remainder,addr;
-
-  remainder = 16;//initialize the PEC
-  for (uint8_t i = 0; i<len; i++) // loops for each byte in data array
-  {
-    addr = ((remainder>>7)^data[i])&0xff;//calculate PEC table address
-    remainder = (remainder<<8)^crc15Table[addr];
-  }
-
-  return(remainder*2);//The CRC15 has a 0 in the LSB so the remainder must be multiplied by 2
-}
-
-
-HAL_StatusTypeDef LTC6811_addrWrite(LTCHandle_t *ltc, uint8_t *din,
-		uint8_t len, uint16_t cmd) {
-	uint8_t tx_arr[];
-	tx_arr = malloc((len + 6) *sizeof(*tx_arr));
-	if (NULL == tx_arr)
-		return HAL_ERROR;
-
-	//Generate CMD0 and CMD1 bits
-	tx_arr[0] = (uint8_t) cmd;
-	tx_arr[1] = 0xFF & ltc->spi_addr & ((uint8_t) cmd >> 8);
-
-	//Generate PEC
-	uint16_t pec = LTC6811Pec(ltc);
-	tx_arr[2] = (uint8_t) pec;
-	tx_arr[3] = (uint8_t) cmd >> 8;
-	//Compile write array
-	memcpy(&tx_arr[4], din, len)
-
-	//Generate PEC for data
-	pec = LTC6811Pec(ltc);
-	tx_arr[len-2] = (uint8_t) pec;
-	tx_arr[len-1] = (uint8_t) pec >> 8;
-
-	//send data
-	//TODO change to interrupt and include error checking
-	HAL_SPI_Transmit(ltc->spi, tx_arr, len + 6, HAL_MAX_DELAY);
-	free(tx_arr);
-	return HAL_OK
-}
-
-HAL_StatusTypeDef LTC6811_addrRead(LTCHandle_t *ltc, uint8_t *dout,
-		uint8_t len, uint16_t cmd) {
-
-	uint8_t tx_arr[];
-	tx_arr = malloc(4 *sizeof(*tx_arr));
-	if (NULL == tx_arr)
-		return HAL_ERROR;
-
-	//Generate CMD0 and CMD1 bits
-	tx_arr[0] = (uint8_t) cmd;
-	tx_arr[1] = 0xFF & ltc->spi_addr & ((uint8_t) cmd >> 8);
-
-	//Generate PEC
-	uint16_t pec = LTC6811Pec(ltc);
-	tx_arr[2] = (uint8_t) pec;
-	tx_arr[3] = (uint8_t) cmd >> 8;
-
-	HAL_SPI_TransmitReceive(ltc->spi, tx_arr, dout, len + 4, HAL_MAX_DELAY);
-
-	free(tx_arr);
-	//Check PEC
-	if ( LTC6811Pec(ltc, len-2) == (uint16_t) dout[len - 2] ) {
-		return HAL_OK;
-	}
-	else
-		return HAL_ERROR;
-}
-
-//HAL_StatusTypeDef LTC6811_addrRead_IT(LTCHandle_t ltc)
-
-//HAL_StatusTypeDef LTC6811_addrPoll(LTCHandle_t ltc, uint8_t *din,
-//		uint8_t len) {
-//	//Generate CMD0 and CMD1 bits
-//	//Compile write array
-//	//pull SS line low
-//	//HAL_SPI_TransmitReceive
+//
+//HAL_StatusTypeDef init_LTC6811() {
+//  //this function is used to initiate communication to the LTC6811 chip
+//
+//  return HAL_OK;
 //}
-
-HAL_StatusTypeDef LTC6811_init(LTCHandle_t ltc, uint8_t *din,
-		uint8_t len) {
-
-}
-
-HAL_StatusTypeDef LTC6811_deInit(LTCHandle_t ltc, uint8_t *din,
-		uint8_t len) {
-
-}
-#endif
+//
+////Calculates PEC or CRC
+////TODO might want to make LTCHandle_t a pointer
+//uint16_t LTC6811Pec(uint8_t *data, uint8_t len) {
+//  uint16_t remainder,addr;
+//
+//  remainder = 16;//initialize the PEC
+//  for (uint8_t i = 0; i<len; i++) // loops for each byte in data array
+//  {
+//    addr = ((remainder>>7)^data[i])&0xff;//calculate PEC table address
+//    remainder = (remainder<<8)^crc15Table[addr];
+//  }
+//
+//  return(remainder*2);//The CRC15 has a 0 in the LSB so the remainder must be multiplied by 2
+//}
+//
+//
+//HAL_StatusTypeDef LTC6811_addrWrite(LTCHandle_t *ltc, uint8_t *din,
+//		uint8_t len, uint16_t cmd) {
+//	uint8_t tx_arr[];
+//	tx_arr = malloc((len + 6) *sizeof(*tx_arr));
+//	if (NULL == tx_arr)
+//		return HAL_ERROR;
+//
+//	//Generate CMD0 and CMD1 bits
+//	tx_arr[0] = (uint8_t) cmd;
+//	tx_arr[1] = 0xFF & ltc->spi_addr & ((uint8_t) cmd >> 8);
+//
+//	//Generate PEC
+//	uint16_t pec = LTC6811Pec(ltc);
+//	tx_arr[2] = (uint8_t) pec;
+//	tx_arr[3] = (uint8_t) cmd >> 8;
+//	//Compile write array
+//	memcpy(&tx_arr[4], din, len)
+//
+//	//Generate PEC for data
+//	pec = LTC6811Pec(ltc);
+//	tx_arr[len-2] = (uint8_t) pec;
+//	tx_arr[len-1] = (uint8_t) pec >> 8;
+//
+//	//send data
+//	//TODO change to interrupt and include error checking
+//	HAL_SPI_Transmit(ltc->spi, tx_arr, len + 6, HAL_MAX_DELAY);
+//	free(tx_arr);
+//	return HAL_OK
+//}
+//
+//HAL_StatusTypeDef LTC6811_addrRead(LTCHandle_t *ltc, uint8_t *dout,
+//		uint8_t len, uint16_t cmd) {
+//
+//	uint8_t tx_arr[];
+//	tx_arr = malloc(4 *sizeof(*tx_arr));
+//	if (NULL == tx_arr)
+//		return HAL_ERROR;
+//
+//	//Generate CMD0 and CMD1 bits
+//	tx_arr[0] = (uint8_t) cmd;
+//	tx_arr[1] = 0xFF & ltc->spi_addr & ((uint8_t) cmd >> 8);
+//
+//	//Generate PEC
+//	uint16_t pec = LTC6811Pec(ltc);
+//	tx_arr[2] = (uint8_t) pec;
+//	tx_arr[3] = (uint8_t) cmd >> 8;
+//
+//	HAL_SPI_TransmitReceive(ltc->spi, tx_arr, dout, len + 4, HAL_MAX_DELAY);
+//
+//	free(tx_arr);
+//	//Check PEC
+//	if ( LTC6811Pec(ltc, len-2) == (uint16_t) dout[len - 2] ) {
+//		return HAL_OK;
+//	}
+//	else
+//		return HAL_ERROR;
+//}
+//
+////HAL_StatusTypeDef LTC6811_addrRead_IT(LTCHandle_t ltc)
+//
+////HAL_StatusTypeDef LTC6811_addrPoll(LTCHandle_t ltc, uint8_t *din,
+////		uint8_t len) {
+////	//Generate CMD0 and CMD1 bits
+////	//Compile write array
+////	//pull SS line low
+////	//HAL_SPI_TransmitReceive
+////}
+//
+//HAL_StatusTypeDef LTC6811_init(LTCHandle_t ltc, uint8_t *din,
+//		uint8_t len) {
+//
+//}
+//
+//HAL_StatusTypeDef LTC6811_deInit(LTCHandle_t ltc, uint8_t *din,
+//		uint8_t len) {
+//
+//}

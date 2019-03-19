@@ -150,5 +150,6 @@ extern SPI_HandleTypeDef  hspi1;
 //Functions
 void task_bms_main();
 void initRTOSObjects();
+void initBMSobject();
 
 #endif /* BMS_H_ */
