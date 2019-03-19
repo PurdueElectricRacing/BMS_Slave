@@ -90,10 +90,10 @@ osThreadId defaultTaskHandle;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
-static void MX_USART2_UART_Init(void);
 static void MX_CAN1_Init(void);
-static void MX_I2C1_Init(void);
 static void MX_SPI1_Init(void);
+static void MX_I2C1_Init(void);
+static void MX_USART2_UART_Init(void);
 void StartDefaultTask(void const * argument);
 
 /* USER CODE BEGIN PFP */
@@ -133,10 +133,10 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_USART2_UART_Init();
   MX_CAN1_Init();
-  MX_I2C1_Init();
   MX_SPI1_Init();
+  MX_I2C1_Init();
+  MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
   can_filter_init(&hcan1);
   HAL_CAN_Start(&hcan1);
@@ -161,6 +161,10 @@ int main(void)
   /* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
 
+  /* USER CODE BEGIN RTOS_QUEUES */
+  /* add queues, ... */
+  /* USER CODE END RTOS_QUEUES */
+
   /* Create the thread(s) */
   /* definition and creation of defaultTask */
   osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 128);
@@ -169,11 +173,6 @@ int main(void)
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
-
-  /* USER CODE BEGIN RTOS_QUEUES */
-  /* add queues, ... */
-  /* USER CODE END RTOS_QUEUES */
- 
 
   /* Start scheduler */
   osKernelStart();
@@ -200,11 +199,11 @@ void SystemClock_Config(void)
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
   RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
 
-  /**Configure LSE Drive Capability 
+  /** Configure LSE Drive Capability 
   */
   HAL_PWR_EnableBkUpAccess();
   __HAL_RCC_LSEDRIVE_CONFIG(RCC_LSEDRIVE_LOW);
-  /**Initializes the CPU, AHB and APB busses clocks 
+  /** Initializes the CPU, AHB and APB busses clocks 
   */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSE|RCC_OSCILLATORTYPE_MSI;
   RCC_OscInitStruct.LSEState = RCC_LSE_ON;
@@ -222,7 +221,7 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-  /**Initializes the CPU, AHB and APB busses clocks 
+  /** Initializes the CPU, AHB and APB busses clocks 
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
@@ -242,13 +241,13 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-  /**Configure the main internal regulator output voltage 
+  /** Configure the main internal regulator output voltage 
   */
   if (HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1) != HAL_OK)
   {
     Error_Handler();
   }
-  /**Enable MSI Auto calibration 
+  /** Enable MSI Auto calibration 
   */
   HAL_RCCEx_EnableMSIPLLMode();
 }
@@ -318,13 +317,13 @@ static void MX_I2C1_Init(void)
   {
     Error_Handler();
   }
-  /**Configure Analogue filter 
+  /** Configure Analogue filter 
   */
   if (HAL_I2CEx_ConfigAnalogFilter(&hi2c1, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
   {
     Error_Handler();
   }
-  /**Configure Digital filter 
+  /** Configure Digital filter 
   */
   if (HAL_I2CEx_ConfigDigitalFilter(&hi2c1, 0) != HAL_OK)
   {
@@ -426,16 +425,16 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, BLUE_LED_Pin|GREEN_LED_Pin|LD3_Pin|ORANGE_LED_Pin 
-                          |RED_LED_Pin|HEARTBEAT_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, BLUE_LED_Pin|GREEN_LED_Pin|ORANGE_LED_Pin|RED_LED_Pin 
+                          |HEARTBEAT_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(LPM_GPIO_Port, LPM_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : BLUE_LED_Pin GREEN_LED_Pin LD3_Pin ORANGE_LED_Pin 
-                           RED_LED_Pin HEARTBEAT_Pin */
-  GPIO_InitStruct.Pin = BLUE_LED_Pin|GREEN_LED_Pin|LD3_Pin|ORANGE_LED_Pin 
-                          |RED_LED_Pin|HEARTBEAT_Pin;
+  /*Configure GPIO pins : BLUE_LED_Pin GREEN_LED_Pin ORANGE_LED_Pin RED_LED_Pin 
+                           HEARTBEAT_Pin */
+  GPIO_InitStruct.Pin = BLUE_LED_Pin|GREEN_LED_Pin|ORANGE_LED_Pin|RED_LED_Pin 
+                          |HEARTBEAT_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
