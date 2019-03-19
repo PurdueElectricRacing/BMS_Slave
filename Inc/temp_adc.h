@@ -19,11 +19,12 @@
 #define ACQUIRE_TEMP_STACK_SIZE 128
 #define ACQUIRE_TEMP_PRIORITY   1
 #define I2C_TIMEOUT             100 / portTICK_RATE_MS
-#define READ_REQ_WAIT						150 / portTICK_RATE_MS
+#define READ_REQ_WAIT						200 / portTICK_RATE_MS
+#define WRITE_REQ_WAIT					200 / portTICK_RATE_MS
 
 
 //writing
-#define WRITE_MSG_SIZE    3
+#define WRITE_MSG_SIZE    2
 #define WRITE_ENABLE      0x00 //xxxx-xxx0
 #define CHANGE_CHANNEL    0xA0 //101x-xxxx
 
