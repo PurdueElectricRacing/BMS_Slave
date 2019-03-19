@@ -21,9 +21,12 @@
 #include "vstack.h"
 #include "temp_adc.h"
 
+//Diagnostics
+#define TRACE_ENABLE 1
+
 //Constants
 #define NUM_VTAPS         6 //number of voltage taps per module
-#define NUM_TEMP          2 //number of thermistors per module
+#define NUM_TEMP          4 //number of thermistors per module
 
 //RTOS Constants
 #define BMS_MAIN_STACK_SIZE 128

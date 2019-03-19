@@ -143,7 +143,9 @@ int main(void)
   
   HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING);
 
+#ifdef TRACE_ENABLE
   vTraceEnable(TRC_START);
+#endif
 
   initBMSobject();
   initRTOSObjects(); //start tasks
