@@ -9,7 +9,7 @@
 Success_t init_LTC2497();
 
 uint8_t temp_array[READ_MSG_SIZE];
-uint16_t adc_val0, adc_val1, adc_val2, adc_val3, adc_val4;
+uint16_t adc_val, adc_val0, adc_val1, adc_val2, adc_val3, adc_val4;
 const uint8_t channel[NUM_CHANNELS] = {CHANNEL_0, CHANNEL_1,
                                        CHANNEL_2, CHANNEL_3, CHANNEL_4, CHANNEL_5, CHANNEL_6,
                                        CHANNEL_7, CHANNEL_8, CHANNEL_9, CHANNEL_10, CHANNEL_11,
@@ -45,6 +45,7 @@ void task_acquire_temp() {
         while (HAL_I2C_GetState(&hi2c1) != HAL_I2C_STATE_READY)
 				{
 				}
+        //TODO optimize how it sends the receive
         vTaskDelay(READ_REQ_WAIT);
         read_byte = set_address(ID_TEMP_1, READ_ENABLE);
         HAL_I2C_Master_Receive_IT(&hi2c1,(uint16_t) read_byte, &temp_array[0], READ_MSG_SIZE);
@@ -52,24 +53,31 @@ void task_acquire_temp() {
 				{
 				}
         //TODO: remove
-        switch (i) {
-					case 0:
-						adc_val0 = ((uint16_t) temp_array[0] << 10) | ((uint16_t) temp_array[1] << 2) | ((uint16_t) temp_array[2] >> 6);
-						break;
-					case 1:
-						adc_val1 = ((uint16_t) temp_array[0] << 10) | ((uint16_t) temp_array[1] << 2) | ((uint16_t) temp_array[2] >> 6);
-						break;
-					case 2:
-						adc_val2 = ((uint16_t) temp_array[0] << 10) | ((uint16_t) temp_array[1] << 2) | ((uint16_t) temp_array[2] >> 6);
-						break;
-					case 3:
-						adc_val3 = ((uint16_t) temp_array[0] << 10) | ((uint16_t) temp_array[1] << 2) | ((uint16_t) temp_array[2] >> 6);
-						break;
-					case 4:
-						adc_val4 = ((uint16_t) temp_array[0] << 10) | ((uint16_t) temp_array[1] << 2) | ((uint16_t) temp_array[2] >> 6);
-						break;
+//        switch (i) {
+//					case 0:
+//						adc_val0 = ((uint16_t) temp_array[0] << 10) | ((uint16_t) temp_array[1] << 2) | ((uint16_t) temp_array[2] >> 6);
+//						break;
+//					case 1:
+//						adc_val1 = ((uint16_t) temp_array[0] << 10) | ((uint16_t) temp_array[1] << 2) | ((uint16_t) temp_array[2] >> 6);
+//						break;
+//					case 2:
+//						adc_val2 = ((uint16_t) temp_array[0] << 10) | ((uint16_t) temp_array[1] << 2) | ((uint16_t) temp_array[2] >> 6);
+//						break;
+//					case 3:
+//						adc_val3 = ((uint16_t) temp_array[0] << 10) | ((uint16_t) temp_array[1] << 2) | ((uint16_t) temp_array[2] >> 6);
+//						break;
+//					case 4:
+//						adc_val4 = ((uint16_t) temp_array[0] << 10) | ((uint16_t) temp_array[1] << 2) | ((uint16_t) temp_array[2] >> 6);
+//						break;
+//        }
+        adc_val = adc_extract(&temp_array);
+        //TODO: Raymond need to conver the adc_val of this to actual temperature
+        if (xSemaphoreTake(bms.temp.sem, TIMEOUT) == pdTRUE) {
+        	bms.temp.data[i] = adc_val;
+        	xSemaphoreGive(bms.temp.sem);
+        } else {
+        	//error rip
         }
-//        adc_val = ((uint16_t) temp_array[0] << 10) | ((uint16_t) temp_array[1] << 2) | ((uint16_t) temp_array[2] >> 6);
       }
       
     } else {
@@ -77,9 +85,6 @@ void task_acquire_temp() {
       //todo: read_temp2();
       //todo: process_temp(temp_values* temps);
     }
-    
-    //pack the data into can msgs
-    //send out
     
     vTaskDelayUntil(&time_init, ACQUIRE_TEMP_RATE);
   }
