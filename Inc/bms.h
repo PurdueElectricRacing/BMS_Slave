@@ -22,7 +22,7 @@
 #include "temp_adc.h"
 
 //Diagnostics
-#define TRACE_ENABLE 1
+#define TRACE_ENABLE 0
 
 //Constants
 #define NUM_VTAPS         6 //number of voltage taps per module

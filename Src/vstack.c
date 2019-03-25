@@ -8,8 +8,9 @@
 #include "vstack.h"
 #include "stm32l4xx_hal_spi.h"
 
-//Device Address
-#define LTC6811_DEV_ADDR
+//SPI Definitions
+#define LTC6811_SPI_ADDR	0x1	//Device Address
+#define LTC6811_SPI			&hspi1
 
 //ADC Channel definition
 #define LTC6811_ADC_CALL	0x0
@@ -82,6 +83,12 @@
 
 #define GPIOx
 
+#define LTC6811_MAX_PCKV 50.4 //Max Pack voltage cutoff
+#define LTC6811_MIN_PCKV 30 	//Min pack voltage cutoff
+
+
+
+
 static const uint16_t crc15Table[256]= {0x0,0xc599, 0xceab, 0xb32, 0xd8cf, 0x1d56, 0x1664, 0xd3fd, 0xf407, 0x319e, 0x3aac,  //!<precomputed CRC15 Table
                                 0xff35, 0x2cc8, 0xe951, 0xe263, 0x27fa, 0xad97, 0x680e, 0x633c, 0xa6a5, 0x7558, 0xb0c1,
                                 0xbbf3, 0x7e6a, 0x5990, 0x9c09, 0x973b, 0x52a2, 0x815f, 0x44c6, 0x4ff4, 0x8a6d, 0x5b2e,
@@ -107,7 +114,7 @@ static const uint16_t crc15Table[256]= {0x0,0xc599, 0xceab, 0xb32, 0xd8cf, 0x1d5
                                 0x585a, 0x8ba7, 0x4e3e, 0x450c, 0x8095
                                };
 
-
+HAL_StatusTypeDef LTC6811_init();
 
 
 void task_VSTACK() {
@@ -115,106 +122,127 @@ void task_VSTACK() {
 
   while (1) {
     time_init = xTaskGetTickCount();
-
+    uint8_t din[1] = {0x1};
+    LTC6811_init();
+    //LTC6811_addrWrite(din, 1,  LTC6811_CMD_WRCFGA);
     vTaskDelayUntil(&time_init, VSTACK_RATE);
   }
 }
-//
-//HAL_StatusTypeDef init_LTC6811() {
-//  //this function is used to initiate communication to the LTC6811 chip
-//
-//  return HAL_OK;
-//}
-//
-////Calculates PEC or CRC
-////TODO might want to make LTCHandle_t a pointer
-//uint16_t LTC6811Pec(uint8_t *data, uint8_t len) {
-//  uint16_t remainder,addr;
-//
-//  remainder = 16;//initialize the PEC
-//  for (uint8_t i = 0; i<len; i++) // loops for each byte in data array
-//  {
-//    addr = ((remainder>>7)^data[i])&0xff;//calculate PEC table address
-//    remainder = (remainder<<8)^crc15Table[addr];
-//  }
-//
-//  return(remainder*2);//The CRC15 has a 0 in the LSB so the remainder must be multiplied by 2
-//}
-//
-//
-//HAL_StatusTypeDef LTC6811_addrWrite(LTCHandle_t *ltc, uint8_t *din,
-//		uint8_t len, uint16_t cmd) {
-//	uint8_t tx_arr[];
-//	tx_arr = malloc((len + 6) *sizeof(*tx_arr));
-//	if (NULL == tx_arr)
-//		return HAL_ERROR;
-//
-//	//Generate CMD0 and CMD1 bits
-//	tx_arr[0] = (uint8_t) cmd;
-//	tx_arr[1] = 0xFF & ltc->spi_addr & ((uint8_t) cmd >> 8);
-//
-//	//Generate PEC
-//	uint16_t pec = LTC6811Pec(ltc);
-//	tx_arr[2] = (uint8_t) pec;
-//	tx_arr[3] = (uint8_t) cmd >> 8;
-//	//Compile write array
-//	memcpy(&tx_arr[4], din, len)
-//
-//	//Generate PEC for data
-//	pec = LTC6811Pec(ltc);
-//	tx_arr[len-2] = (uint8_t) pec;
-//	tx_arr[len-1] = (uint8_t) pec >> 8;
-//
-//	//send data
-//	//TODO change to interrupt and include error checking
-//	HAL_SPI_Transmit(ltc->spi, tx_arr, len + 6, HAL_MAX_DELAY);
-//	free(tx_arr);
-//	return HAL_OK
-//}
-//
-//HAL_StatusTypeDef LTC6811_addrRead(LTCHandle_t *ltc, uint8_t *dout,
-//		uint8_t len, uint16_t cmd) {
-//
-//	uint8_t tx_arr[];
-//	tx_arr = malloc(4 *sizeof(*tx_arr));
-//	if (NULL == tx_arr)
-//		return HAL_ERROR;
-//
-//	//Generate CMD0 and CMD1 bits
-//	tx_arr[0] = (uint8_t) cmd;
-//	tx_arr[1] = 0xFF & ltc->spi_addr & ((uint8_t) cmd >> 8);
-//
-//	//Generate PEC
-//	uint16_t pec = LTC6811Pec(ltc);
-//	tx_arr[2] = (uint8_t) pec;
-//	tx_arr[3] = (uint8_t) cmd >> 8;
-//
-//	HAL_SPI_TransmitReceive(ltc->spi, tx_arr, dout, len + 4, HAL_MAX_DELAY);
-//
-//	free(tx_arr);
-//	//Check PEC
-//	if ( LTC6811Pec(ltc, len-2) == (uint16_t) dout[len - 2] ) {
-//		return HAL_OK;
-//	}
-//	else
-//		return HAL_ERROR;
-//}
-//
-////HAL_StatusTypeDef LTC6811_addrRead_IT(LTCHandle_t ltc)
-//
-////HAL_StatusTypeDef LTC6811_addrPoll(LTCHandle_t ltc, uint8_t *din,
-////		uint8_t len) {
-////	//Generate CMD0 and CMD1 bits
-////	//Compile write array
-////	//pull SS line low
-////	//HAL_SPI_TransmitReceive
-////}
-//
-//HAL_StatusTypeDef LTC6811_init(LTCHandle_t ltc, uint8_t *din,
+
+HAL_StatusTypeDef init_LTC6811() {
+  //this function is used to initiate communication to the LTC6811 chip
+
+  return HAL_OK;
+}
+
+//Calculates PEC or CRC
+//TODO might want to make LTCHandle_t a pointer
+uint16_t LTC6811Pec(uint8_t *data, uint8_t len) {
+  uint16_t remainder,addr;
+
+  remainder = 16;//initialize the PEC
+  for (uint8_t i = 0; i<len; i++) // loops for each byte in data array
+  {
+    addr = ((remainder>>7)^data[i])&0xff;//calculate PEC table address
+    remainder = (remainder<<8)^crc15Table[addr];
+  }
+
+  return(remainder*2);//The CRC15 has a 0 in the LSB so the remainder must be multiplied by 2
+}
+
+
+
+HAL_StatusTypeDef LTC6811_addrWrite(uint8_t *din,
+		uint8_t len, uint16_t cmd) {
+	uint8_t * tx_arr;
+	tx_arr = (uint8_t *)  pvPortMalloc((len + 6)*sizeof(*tx_arr));
+	if (NULL == tx_arr)
+		return HAL_ERROR;
+
+	//Generate CMD0 and CMD1 bits
+	tx_arr[0] = (uint8_t) cmd;
+	tx_arr[1] = 0xFF & LTC6811_SPI_ADDR & ((uint8_t) cmd >> 8);
+
+	//Generate PEC
+	uint16_t pec = LTC6811Pec(tx_arr, 2);
+	tx_arr[2] = (uint8_t) pec;
+	tx_arr[3] = (uint8_t) (pec >> 8);
+	//Compile write array
+	memcpy(&tx_arr[4], din, len);
+
+	//Generate PEC for data
+	pec = LTC6811Pec(&tx_arr[4], len);
+	tx_arr[len + 6 - 2] = (uint8_t) pec;
+	tx_arr[len + 6 - 1] = (uint8_t) (pec >> 8);
+
+	//send data
+	//TODO change to interrupt and include error checking
+	HAL_GPIO_WritePin(VSTACK_SPI_SS_GPIO_Port, VSTACK_SPI_SS_Pin, GPIO_PIN_RESET);	//SS Low
+	HAL_SPI_Transmit(LTC6811_SPI, tx_arr, len + 6, HAL_MAX_DELAY);
+	HAL_GPIO_WritePin(VSTACK_SPI_SS_GPIO_Port, VSTACK_SPI_SS_Pin, GPIO_PIN_SET);	//SS High
+	vPortFree(tx_arr);
+	return HAL_OK;
+}
+
+HAL_StatusTypeDef LTC6811_addrRead(uint8_t *dout,
+		uint8_t len, uint16_t cmd) {
+
+	uint8_t tx_arr[4];
+
+	//Generate CMD0 and CMD1 bits
+	tx_arr[0] = (uint8_t) cmd;
+	tx_arr[1] = 0xFF & LTC6811_SPI_ADDR & ((uint8_t) cmd >> 8);
+
+	//Generate PEC
+	uint16_t pec = LTC6811Pec((uint8_t *) &cmd, 2);
+	tx_arr[2] = (uint8_t) pec;
+	tx_arr[3] = (uint8_t) (pec >> 8);
+
+	HAL_GPIO_WritePin(VSTACK_SPI_SS_GPIO_Port, VSTACK_SPI_SS_Pin, GPIO_PIN_RESET);	//SS Low
+	HAL_SPI_Transmit(LTC6811_SPI, tx_arr, 4, HAL_MAX_DELAY);
+
+	HAL_SPI_Receive(LTC6811_SPI, dout, len, 5);
+	HAL_GPIO_WritePin(VSTACK_SPI_SS_GPIO_Port, VSTACK_SPI_SS_Pin, GPIO_PIN_SET);	//SS High
+
+	//HAL_SPI_TransmitReceive(LTC6811_SPI, tx_arr, dout, len + 4, 5);
+
+	//Check PEC
+	if ( LTC6811Pec(dout, len-2) == (uint16_t) dout[len - 2] ) {
+		return HAL_OK;
+	}
+	else
+		return HAL_ERROR;
+}
+
+//HAL_StatusTypeDef LTC6811_addrRead_IT(LTCHandle_t ltc)
+
+//HAL_StatusTypeDef LTC6811_addrPoll(LTCHandle_t ltc, uint8_t *din,
 //		uint8_t len) {
-//
+//	//Generate CMD0 and CMD1 bits
+//	//Compile write array
+//	//pull SS line low
+//	//HAL_SPI_TransmitReceive
 //}
-//
+
+HAL_StatusTypeDef LTC6811_init() {
+	//Config ADC
+	uint8_t tx_arr[6] = {0, 0, 0, 0, 0, 0};
+	//Set max pack voltage
+	tx_arr[1] =  LTC6811_MIN_PCKV * (16 * .0001);
+	//TODO need to fix bit shifting
+	//tx_arr[2] =  LTC6811_MAX_PCKV / (16 * .0001);
+
+	if (HAL_OK != LTC6811_addrWrite(tx_arr, 6, LTC6811_CMD_WRCFGA))
+		return HAL_ERROR;
+
+	uint8_t rx_arr[6] = {0,0,0,0,0,0};
+	LTC6811_addrRead(rx_arr, 6, LTC6811_CMD_RDCFGA);
+	if(rx_arr[1] != tx_arr[1] || rx_arr[2] != tx_arr[2])
+		return HAL_ERROR;
+
+	return HAL_OK;
+}
+
 //HAL_StatusTypeDef LTC6811_deInit(LTCHandle_t ltc, uint8_t *din,
 //		uint8_t len) {
 //

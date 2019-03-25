@@ -15,5 +15,7 @@
 #define VSTACK_RATE       20 / portTICK_RATE_MS
 
 void task_VSTACK();
+HAL_StatusTypeDef LTC6811_addrWrite(uint8_t * din,
+		uint8_t len, uint16_t cmd);
 
 #endif /* VSTACK_H_ */
