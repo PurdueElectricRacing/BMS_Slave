@@ -143,7 +143,7 @@ int main(void)
   
   HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING);
 
-#ifdef TRACE_ENABLE
+#if (TRACE_ENABLE == 1)
   vTraceEnable(TRC_START);
 #endif
 
