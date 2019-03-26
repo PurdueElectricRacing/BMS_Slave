@@ -9,7 +9,7 @@
 #include "stm32l4xx_hal_spi.h"
 
 //SPI Definitions
-#define LTC6811_SPI_ADDR	0x1	//Device Address
+#define LTC6811_SPI_ADDR	0x0 << 3	//Device Address
 #define LTC6811_SPI			&hspi1
 
 //ADC Channel definition
@@ -160,8 +160,8 @@ HAL_StatusTypeDef LTC6811_addrWrite(uint8_t *din,
 		return HAL_ERROR;
 
 	//Generate CMD0 and CMD1 bits
-	tx_arr[0] = (uint8_t) cmd;
-	tx_arr[1] = 0xFF & LTC6811_SPI_ADDR & ((uint8_t) cmd >> 8);
+	tx_arr[0] = (uint8_t) 0x80 | LTC6811_SPI_ADDR |  ((0x700 & cmd) >> 8);
+	tx_arr[1] = (uint8_t) cmd;
 
 	//Generate PEC
 	uint16_t pec = LTC6811Pec(tx_arr, 2);
@@ -190,8 +190,8 @@ HAL_StatusTypeDef LTC6811_addrRead(uint8_t *dout,
 	uint8_t tx_arr[4];
 
 	//Generate CMD0 and CMD1 bits
-	tx_arr[0] = (uint8_t) cmd;
-	tx_arr[1] = 0xFF & LTC6811_SPI_ADDR & ((uint8_t) cmd >> 8);
+	tx_arr[0] = (uint8_t) 0x80 | LTC6811_SPI_ADDR |  ((0x700 & cmd) >> 8);
+	tx_arr[1] = (uint8_t) cmd;
 
 	//Generate PEC
 	uint16_t pec = LTC6811Pec((uint8_t *) &cmd, 2);
@@ -235,8 +235,8 @@ HAL_StatusTypeDef LTC6811_init() {
 	if (HAL_OK != LTC6811_addrWrite(tx_arr, 6, LTC6811_CMD_WRCFGA))
 		return HAL_ERROR;
 
-	uint8_t rx_arr[6] = {0,0,0,0,0,0};
-	LTC6811_addrRead(rx_arr, 6, LTC6811_CMD_RDCFGA);
+	uint8_t rx_arr[8] = {0,0,0,0,0,0,0,9};
+	LTC6811_addrRead(rx_arr, 8, LTC6811_CMD_RDCFGA);
 	if(rx_arr[1] != tx_arr[1] || rx_arr[2] != tx_arr[2])
 		return HAL_ERROR;
 
