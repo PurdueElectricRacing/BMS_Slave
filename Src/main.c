@@ -147,6 +147,9 @@ int main(void)
   vTraceEnable(TRC_START);
 #endif
 
+  initRTOSObjects();
+  initBMSobject();
+
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -365,7 +368,7 @@ static void MX_SPI1_Init(void)
   hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
   hspi1.Init.CRCPolynomial = 7;
   hspi1.Init.CRCLength = SPI_CRC_LENGTH_DATASIZE;
-  hspi1.Init.NSSPMode = SPI_NSS_PULSE_DISABLE;
+  hspi1.Init.NSSPMode = SPI_NSS_PULSE_ENABLE;
   if (HAL_SPI_Init(&hspi1) != HAL_OK)
   {
     Error_Handler();
@@ -426,21 +429,18 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(VSTACK_SPI_SS_GPIO_Port, VSTACK_SPI_SS_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOA, VSTACK_SPI_SS_Pin|LPM_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, BLUE_LED_Pin|GREEN_LED_Pin|LD3_Pin|ORANGE_LED_Pin 
                           |RED_LED_Pin|HEARTBEAT_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(LPM_GPIO_Port, LPM_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin : VSTACK_SPI_SS_Pin */
-  GPIO_InitStruct.Pin = VSTACK_SPI_SS_Pin;
+  /*Configure GPIO pins : VSTACK_SPI_SS_Pin LPM_Pin */
+  GPIO_InitStruct.Pin = VSTACK_SPI_SS_Pin|LPM_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
-  HAL_GPIO_Init(VSTACK_SPI_SS_GPIO_Port, &GPIO_InitStruct);
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : BLUE_LED_Pin GREEN_LED_Pin LD3_Pin ORANGE_LED_Pin 
                            RED_LED_Pin HEARTBEAT_Pin */
@@ -450,13 +450,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : LPM_Pin */
-  GPIO_InitStruct.Pin = LPM_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(LPM_GPIO_Port, &GPIO_InitStruct);
 
 }
 
