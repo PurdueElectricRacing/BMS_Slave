@@ -8,86 +8,7 @@
 #include "vstack.h"
 #include "stm32l4xx_hal_spi.h"
 
-//SPI Definitions
-#define LTC6811_SPI_ADDR	0x1	//Device Address
-#define LTC6811_SPI			&hspi1
-
-//ADC Channel definition
-#define LTC6811_ADC_CALL	0x0
-#define LTC6811_ADC_C17		0x1
-#define LTC6811_ADC_C28		0x2
-#define LTC6811_ADC_C39		0x3
-#define LTC6811_ADC_C410	0x4
-#define LTC6811_ADC_C511	0x5
-#define LTC6811_ADC_C612	0x6
-
-//Status Group Selection Definitions
-#define LTC6811_STATUS_ALL 	0x0
-#define LTC6811_STATUS_SOC	0x1
-#define LTC6811_STATUS_ITMP	0x2
-#define LTC6811_STATUS_VA	0x3
-#define LTC6811_STATUS_VD	0x4
-#define LTC6811_STATUS	LTC6811_STATUS_ALL
-
-
-#define LTC6811_ADC_CH LTC6811_ADC_CALL
-#define LTC6811_ADC_MODE 0x3
-#define LTC6811_DCP			0x1
-#define LTC6811_PUP			0x0	//Look up PUP
-
-//CMD Table
-#define LTC6811_CMD_WRCFGA	0x1
-#define LTC6811_CMD_WRCFGB	0x24
-#define LTC6811_CMD_RDCFGA	0x2
-#define LTC6811_CMD_RDCFGB	0x26
-#define LTC6811_CMD_RDCVA	0x4
-#define LTC6811_CMD_RDCVB	0x6
-#define LTC6811_CMD_RDCVC	0x8
-#define LTC6811_CMD_RDCVD	0xA
-#define LTC6811_CMD_RDCVE	0x9
-#define LTC6811_CMD_RDCVF	0xB
-#define LTC6811_CMD_RDAUXA	0xC
-#define LTC6811_CMD_RDAUXB	0xE
-#define LTC6811_CMD_RDAUXC	0xD
-#define LTC6811_CMD_RDAUXD	0xF
-#define LTC6811_CMD_RDSTATA	0x10
-#define LTC6811_CMD_RDSTATB 0x12
-#define LTC6811_CMD_WRSCTRL 	0x14
-#define LTC6811_CMD_WRPWM		0x20
-#define LTC6811_CMD_WRPSB		0x1C
-#define LTC6811_CMD_RDSCTRL		0x16
-#define LTC6811_CMD_RDPWM		0x21
-#define LTC6811_CMD_RDPSB		0x1E
-#define LTC6811_CMD_STSCTRL		0x19
-#define LTC6811_CMD_CLRSCTRL	0x1C
-#define LTC6811_CMD_ADCV		0x
-#define LTC6811_CMD_ADOW
-#define LTC6811_CMD_CVST
-#define LTC6811_CMD_ADOL
-#define LTC6811_CMD_ADAX
-#define LTC6811_CMD_ADAXD
-#define LTC6811_CMD_AXST
-#define LTC6811_CMD_ADSTAT
-#define LTC6811_CMD_ADSTATD
-#define LTC6811_CMD_STATST
-#define LTC6811_CMD_ADCVAX
-#define LTC6811_CMD_ADCVSC
-#define LTC6811_CMD_CLRCELL
-#define LTC6811_CMD_CLRAUX
-#define LTC6811_CMD_CLRSTAT
-#define LTC6811_CMD_PLADC
-#define LTC6811_CMD_DIAGN
-#define LTC6811_CMD_WRCOMM
-#define LTC6811_CMD_RDCOMM
-#define LTC6811_CMD_STCOMM
-
-#define GPIOx
-
-#define LTC6811_MAX_PCKV 50.4 //Max Pack voltage cutoff
-#define LTC6811_MIN_PCKV 30 	//Min pack voltage cutoff
-
-
-
+//Function prototypes
 
 static const uint16_t crc15Table[256]= {0x0,0xc599, 0xceab, 0xb32, 0xd8cf, 0x1d56, 0x1664, 0xd3fd, 0xf407, 0x319e, 0x3aac,  //!<precomputed CRC15 Table
                                 0xff35, 0x2cc8, 0xe951, 0xe263, 0x27fa, 0xad97, 0x680e, 0x633c, 0xa6a5, 0x7558, 0xb0c1,
@@ -115,7 +36,7 @@ static const uint16_t crc15Table[256]= {0x0,0xc599, 0xceab, 0xb32, 0xd8cf, 0x1d5
                                };
 
 HAL_StatusTypeDef LTC6811_init();
-
+void init_PEC15_Table();
 
 void task_VSTACK() {
   TickType_t time_init = 0;
@@ -134,23 +55,6 @@ HAL_StatusTypeDef init_LTC6811() {
 
   return HAL_OK;
 }
-
-//Calculates PEC or CRC
-//TODO might want to make LTCHandle_t a pointer
-uint16_t LTC6811Pec(uint8_t *data, uint8_t len) {
-  uint16_t remainder,addr;
-
-  remainder = 16;//initialize the PEC
-  for (uint8_t i = 0; i<len; i++) // loops for each byte in data array
-  {
-    addr = ((remainder>>7)^data[i])&0xff;//calculate PEC table address
-    remainder = (remainder<<8)^crc15Table[addr];
-  }
-
-  return(remainder*2);//The CRC15 has a 0 in the LSB so the remainder must be multiplied by 2
-}
-
-
 
 HAL_StatusTypeDef LTC6811_addrWrite(uint8_t *din,
 		uint8_t len, uint16_t cmd) {
@@ -247,3 +151,44 @@ HAL_StatusTypeDef LTC6811_init() {
 //		uint8_t len) {
 //
 //}
+
+//===============================================================
+//Miscellaneous Calculations
+
+//Calculates PEC or CRC
+//TODO might want to make LTCHandle_t a pointer
+uint16_t LTC6811Pec(uint8_t *data, uint8_t len) {
+  uint16_t remainder,addr;
+
+  remainder = 16;//initialize the PEC
+  for (uint8_t i = 0; i<len; i++) // loops for each byte in data array
+  {
+    addr = ((remainder>>7)^data[i])&0xff;//calculate PEC table address
+    remainder = (remainder<<8)^crc15Table[addr];
+  }
+
+  return(remainder*2);//The CRC15 has a 0 in the LSB so the remainder must be multiplied by 2
+}
+
+void init_PEC15_Table()
+{
+  int16_t remainder = 0;
+
+  for (int i = 0; i < 256; i++)
+  {
+    remainder = i << 7;
+    for (int bit = 8; bit > 0; --bit)
+    {
+      if (remainder & 0x4000)
+      {
+        remainder = ((remainder << 1));
+        remainder = (remainder ^ CRC15_POLY);
+      }
+      else
+      {
+        remainder = ((remainder << 1));
+      }
+    }
+    crc15Table[i] = remainder&0xFFFF;
+  }
+}
