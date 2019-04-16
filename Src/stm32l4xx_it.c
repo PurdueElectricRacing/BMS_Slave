@@ -39,6 +39,7 @@
 #include "cmsis_os.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "bms.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -175,6 +176,25 @@ void DebugMon_Handler(void)
 /* For the available peripheral interrupt handler names,                      */
 /* please refer to the startup file (startup_stm32l4xx.s).                    */
 /******************************************************************************/
+
+/**
+  * @brief This function handles EXTI line4 interrupt.
+  */
+void EXTI4_IRQHandler(void)
+{
+  /* USER CODE BEGIN EXTI4_IRQn 0 */
+
+  /* USER CODE END EXTI4_IRQn 0 */
+  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_4);
+  /* USER CODE BEGIN EXTI4_IRQn 1 */
+  if (bms.state != SHUTDOWN) { //to prevent using rtos while rtos disabled
+    if (xSemaphoreTakeFromISR(bms.state_sem, NULL) == pdPASS) {
+      bms.state = SHUTDOWN;
+      xSemaphoreGiveFromISR(bms.state_sem, NULL); //release sem
+    }
+  }
+  /* USER CODE END EXTI4_IRQn 1 */
+}
 
 /**
   * @brief This function handles CAN1 RX0 interrupt.

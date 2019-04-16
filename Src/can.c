@@ -47,6 +47,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef* hcan) {
   HAL_CAN_GetRxMessage(hcan, 0, &header, rx.Data);
   rx.DLC = header.DLC;
   rx.StdId = header.StdId;
+
   xQueueSendFromISR(bms.q_rx_can, &rx, 0);
   
   //master watchdawg task
@@ -192,9 +193,9 @@ void task_CanProcess() {
           if (rx_can.Data[0] == ID_SLAVE && bms.state == NORMAL_OP) {
             bms.passive_en = !bms.passive_en;
             if (bms.passive_en == 0) {
-              //todo: shutdown_passive();
+              HAL_GPIO_WritePin(PASSIVE_EN_GPIO_Port, PASSIVE_EN_Pin, GPIO_PIN_RESET);
             } else {
-              //todo: enable_passive();
+              HAL_GPIO_WritePin(PASSIVE_EN_GPIO_Port, PASSIVE_EN_Pin, GPIO_PIN_SET);
             }
           }
           break;
@@ -248,6 +249,10 @@ void task_broadcast() {
       }
       
       i++;
+    }
+    else {
+      //suspend your task, it is task_bms_main's job to restart
+      vTaskSuspend(NULL);
     }
     vTaskDelayUntil(&time_init, BROADCAST_RATE);
   }

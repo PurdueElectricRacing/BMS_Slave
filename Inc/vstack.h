@@ -98,5 +98,7 @@
 void task_VSTACK();
 HAL_StatusTypeDef LTC6811_addrWrite(uint8_t * din,
 		uint8_t len, uint16_t cmd);
+uint16_t LTC6811Pec(uint8_t *data, uint8_t len);
+void init_PEC15_Table();
 
 #endif /* VSTACK_H_ */

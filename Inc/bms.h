@@ -29,6 +29,7 @@
 #define NUM_TEMP          4 //number of thermistors per module
 
 //RTOS Constants
+#define NUM_TASKS			9 //the number of total tasks on the system
 #define BMS_MAIN_STACK_SIZE 128
 #define BMS_MAIN_PRIORITY   1
 #define HEARTBEAT_STACK_SIZE 128
@@ -80,6 +81,18 @@ typedef enum power_state {
   POWER_OFF = 1,
 } powercmd_t;
 
+enum task_list {
+  TX_CAN = 0,
+  CAN_PROCESS = 1,
+  BMS_MAIN = 2,
+  HEARTBEAT = 3,
+  MASTER_WDAWG = 4,
+  VSTACK = 5,
+  ACQUIRE_TEMP = 6,
+  BROADCAST = 7,
+  ERROR_CHECK = 8
+};
+
 //structures
 enum bms_slave_state {
   LOW_POWER   = 0,
@@ -125,11 +138,14 @@ typedef struct {
   
   QueueHandle_t     q_rx_can;
   QueueHandle_t     q_tx_can;
+
+  TaskHandle_t		tasks[NUM_TASKS];
+
   fault_t           connected; //used to determine if connected to master
   fault_t           vstack_con; //connected to the vstack
   fault_t           temp1_con;
   fault_t           temp2_con;
-  flag_t           passive_en;
+  flag_t           	passive_en;
   
   params_t          param;
   
