@@ -189,10 +189,9 @@ void task_CanProcess() {
           }
           break;
         case ID_MAS_PASSIVE:
-          //see if this pertains to you and then toggle passive balancing if so
+          //see if this pertains to you and then write passive balancing as requested
           if (rx_can.Data[0] == ID_SLAVE && bms.state == NORMAL_OP) {
-            bms.passive_en = !bms.passive_en;
-            if (bms.passive_en == 0) {
+            if (rx_can.Data[1] == 0) {
               HAL_GPIO_WritePin(PASSIVE_EN_GPIO_Port, PASSIVE_EN_Pin, GPIO_PIN_RESET);
             } else {
               HAL_GPIO_WritePin(PASSIVE_EN_GPIO_Port, PASSIVE_EN_Pin, GPIO_PIN_SET);
