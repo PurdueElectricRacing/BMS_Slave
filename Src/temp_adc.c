@@ -7,7 +7,9 @@
 #include "temp_adc.h"
 
 Success_t init_LTC2497();
+uint16_t adc2temp(uint16_t adc_val);
 inline uint16_t adc_extract(uint8_t * arr);
+uint16_t adc2temp(uint16_t adc_val);
 
 uint8_t temp_array[READ_MSG_SIZE];
 uint16_t adc_val, adc_val0, adc_val1, adc_val2, adc_val3, adc_val4;
@@ -25,7 +27,7 @@ void task_acquire_temp() {
   uint8_t i = 0;
   uint8_t read_byte = 0;
   uint8_t write_data[WRITE_MSG_SIZE + 1];
-  init_LTC2497(); //don't need to handle an error TODO: (maybe use a while loop)
+  uint16_t temperature;
   
   TickType_t time_init = 0;
   while (1) {
@@ -72,9 +74,10 @@ void task_acquire_temp() {
 //						break;
 //        }
         adc_val = adc_extract(temp_array);
-        //TODO: Raymond need to conver the adc_val of this to actual temperature
+        temperature = adc2temp(adc_val);
+
         if (xSemaphoreTake(bms.temp.sem, TIMEOUT) == pdTRUE) {
-        	bms.temp.data[i] = adc_val;
+        	bms.temp.data[i] = temperature;
         	xSemaphoreGive(bms.temp.sem);
         } else {
         	//error rip
@@ -97,33 +100,25 @@ inline uint16_t adc_extract(uint8_t * arr) {
   return result;
 }
 
+uint16_t adc2temp(uint16_t adc_value) {
+  float voltage;
+  float thermistor_res;
+  double temperature;
+  //calculate the voltage from the adc_val
+  voltage = VOLTAGE_REF * ((float) (adc_value)) / 0xFFFF;
+  //calculate the resistance from the voltage
+  thermistor_res = (voltage * THERM_RESIST) / (VOLTAGE_TOP - voltage);
+  //calculate the temperature
+  temperature =  B_VALUE / log (thermistor_res / R_INF_3977) - KELVIN_2_CELSIUS;
+   return (uint16_t) temperature;
+}
+
 
 Success_t init_LTC2497() {
   Success_t success1 = SUCCESSFUL;
   Success_t success2 = SUCCESSFUL;
   //try to initialize communication with the I2C chip
-//  if (HAL_I2C_IsDeviceReady(bms.i2c, ID_TEMP_1 << 1, TRIALS, TIMEOUT) != HAL_OK) {
-//    //Device not connected
-//    success1 = FAILURE;
-//    if (xSemaphoreTake(bms.state_sem, TIMEOUT) == pdPASS) {
-//      bms.state = ERROR_BMS;
-//      xSemaphoreGive(bms.state_sem); //release sem
-//    }
-//  } else {
-//    bms.temp1_con = 1;
-//  }
-  
-//  if (HAL_I2C_IsDeviceReady(bms.i2c, ID_TEMP_2, TRIALS, TIMEOUT) != HAL_OK) {
-//    //Device not connected
-//    success2 = FAILURE;
-//    if (xSemaphoreTake(bms.state_sem, TIMEOUT) == pdPASS) {
-//      bms.state = ERROR_BMS;
-//      xSemaphoreGive(bms.state_sem); //release sem
-//    }
-//  } else {
-//    bms.temp2_con = 1;
-//  }
-//
+
   if (success2 == FAILURE || success1 == FAILURE) {
     return FAILURE;
   } else {

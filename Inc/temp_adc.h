@@ -9,6 +9,7 @@
 #define TEMP_ADC_H_
 
 #include "bms.h"
+#include <math.h>
 
 #define NUM_CHANNELS 16
 
@@ -60,6 +61,16 @@
 //read each set of temps at 2xRate
 #define ACQUIRE_TEMP_RATE       500 / portTICK_RATE_MS
 
+//Thermistor Constants NXRT15XV103FA1B
+#define B_VALUE           3977      //Beta value 25*C to 85*C temp range
+#define THERM_RESIST      10000     //10K Ohm resistor
+#define THERM_TAU         4         //4 second time constant
+#define THERM_DISS_CONST  1.5       //1.5 second thermal dissipation constant
+#define VOLTAGE_REF       2.5       //Voltage Ref into LTC2497 is 5 volts
+#define AMBIENT_TEMP      298.15    //Degrees C
+#define VOLTAGE_TOP       3.3       //top of the voltage divider
+#define R_INF_3977        0.016106  //r_inf = R0 * exp(-Beta/t0) beta = 3977
+#define KELVIN_2_CELSIUS  273.15
 //macros
 #define channel_combine(channel) CHANGE_CHANNEL | SGL_MASK | channel
 #define set_address(address, write_en) (address << 1) | write_en
