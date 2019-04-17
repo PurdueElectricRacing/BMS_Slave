@@ -7,6 +7,7 @@
 #include "temp_adc.h"
 
 Success_t init_LTC2497();
+inline uint16_t adc_extract(uint8_t * arr);
 
 uint8_t temp_array[READ_MSG_SIZE];
 uint16_t adc_val, adc_val0, adc_val1, adc_val2, adc_val3, adc_val4;
@@ -23,7 +24,7 @@ void task_acquire_temp() {
   uint8_t toggle = 0;
   uint8_t i = 0;
   uint8_t read_byte = 0;
-  uint8_t write_data[WRITE_MSG_SIZE];
+  uint8_t write_data[WRITE_MSG_SIZE + 1];
   init_LTC2497(); //don't need to handle an error TODO: (maybe use a while loop)
   
   TickType_t time_init = 0;
@@ -70,7 +71,7 @@ void task_acquire_temp() {
 //						adc_val4 = ((uint16_t) temp_array[0] << 10) | ((uint16_t) temp_array[1] << 2) | ((uint16_t) temp_array[2] >> 6);
 //						break;
 //        }
-        adc_val = adc_extract(&temp_array);
+        adc_val = adc_extract(temp_array);
         //TODO: Raymond need to conver the adc_val of this to actual temperature
         if (xSemaphoreTake(bms.temp.sem, TIMEOUT) == pdTRUE) {
         	bms.temp.data[i] = adc_val;
@@ -89,6 +90,13 @@ void task_acquire_temp() {
     vTaskDelayUntil(&time_init, ACQUIRE_TEMP_RATE);
   }
 }
+
+inline uint16_t adc_extract(uint8_t * arr) {
+  uint16_t result;
+  result = ((uint16_t) arr[0] << 10) | ((uint16_t) arr[1] << 2) | ((uint16_t) arr[2] >> 6);
+  return result;
+}
+
 
 Success_t init_LTC2497() {
   Success_t success1 = SUCCESSFUL;

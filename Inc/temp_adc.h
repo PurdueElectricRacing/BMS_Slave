@@ -12,7 +12,7 @@
 
 #define NUM_CHANNELS 16
 
-#define ID_TEMP_1   0x76
+#define ID_TEMP_1   0x45
 #define ID_TEMP_2   0x7e
 #define TRIALS      2
 #define NUM_CHANNELS 16
@@ -63,7 +63,6 @@
 //macros
 #define channel_combine(channel) CHANGE_CHANNEL | SGL_MASK | channel
 #define set_address(address, write_en) (address << 1) | write_en
-#define adc_extract(arr) ((uint16_t) arr[0] << 10) | ((uint16_t) arr[1] << 2) | ((uint16_t) arr[2] >> 6)
 
 void task_acquire_temp();
 
