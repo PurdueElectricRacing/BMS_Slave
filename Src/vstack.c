@@ -439,11 +439,11 @@ void LTC681x_rdcv_reg(uint8_t reg, //Determines which cell voltage register is r
 			{
 		cmd[1] = 0x0A;
 		cmd[0] = 0x00;
-	} else if (reg == 5) //4: RDCVE
+	} else if (reg == 5) //5: RDCVE
 			{
 		cmd[1] = 0x09;
 		cmd[0] = 0x00;
-	} else if (reg == 6) //4: RDCVF
+	} else if (reg == 6) //6: RDCVF
 			{
 		cmd[1] = 0x0B;
 		cmd[0] = 0x00;
@@ -456,6 +456,26 @@ void LTC681x_rdcv_reg(uint8_t reg, //Determines which cell voltage register is r
 	HAL_SPI_Transmit(LTC6811_SPI, cmd, 4, HAL_MAX_DELAY);
 	HAL_SPI_Receive(LTC6811_SPI, data, (REG_LEN * total_ic), HAL_MAX_DELAY);
 	HAL_GPIO_WritePin(VSTACK_SPI_SS_GPIO_Port, VSTACK_SPI_SS_Pin, GPIO_PIN_SET);
+}
+
+// Write the ltc6811 Sctrl register
+void LTC681x_wrsctrl(uint8_t sctrl_reg, uint8_t tx_data[]) {
+	uint8_t cmd[2];
+	uint8_t write_buffer[256];
+	uint8_t write_count = 0;
+	uint8_t c_ic = 0;
+	if (sctrl_reg == 0) {
+		cmd[0] = 0x00;
+		cmd[1] = 0x14;
+	} else {
+		cmd[0] = 0x00;
+		cmd[1] = 0x1C;
+	}
+	for (uint8_t data = 0; data < 6; data++) {
+		write_buffer[write_count] = tx_data[data];
+		write_count++;
+	}
+	write_68(1, cmd, write_buffer);
 }
 
 // Code Converted by Raymond Ends Here
