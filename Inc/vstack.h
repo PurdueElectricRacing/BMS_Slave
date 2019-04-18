@@ -12,7 +12,7 @@
 #include "stm32l4xx_hal_spi.h"
 #include "LTC6811.h"
 
-#define VSTACK_STACK_SIZE 128
+#define VSTACK_STACK_SIZE 256
 #define VSTACK_PRIORITY   1
 #define VSTACK_RATE       20 / portTICK_RATE_MS
 
@@ -20,6 +20,10 @@
 //SPI Definitions
 #define LTC6811_SPI_ADDR  0x1 //Device Address
 #define LTC6811_SPI     &hspi1
+
+#define LTC6811_WRITE     0
+#define LTC6811_READ      1
+
 
 //Status Group Selection Definitions
 #define LTC6811_STATUS_ALL  0x0

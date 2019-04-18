@@ -51,8 +51,15 @@ void task_VSTACK() {
 }
 
 HAL_StatusTypeDef init_LTC6811() {
+  uint8_t cmd[2];
 	//this function is used to initiate communication to the LTC6811 chip
   wakeup_sleep(1);
+
+  //initialize the LTC8584's to be disabled and sending the voltage values back
+//  cmd[0] =  | (LTC6811_CMD_CLRSCTRL >> 8);
+  cmd[1] = (uint8_t) LTC6811_CMD_CLRSCTRL;
+  cmd_68();
+
 
 	return HAL_OK;
 }

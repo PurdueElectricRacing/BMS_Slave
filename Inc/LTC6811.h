@@ -12,6 +12,16 @@
 #include "vstack.h"
 
 //Defines
+#define LTC8584_SHIGH          0 //part is disabled voltage of cells is transmitted
+#define LTC8584_SLOW           8 //enable balancing in simple mode
+#define LTC8584_2PULSE         1 //part is enabled for balancing voltage of cells is transmitted
+#define LTC8584_3PULSE         2
+#define LTC8584_4PULSE         3
+#define LTC8584_5PULSE         4
+#define LTC8584_6PULSE         5
+#define LTC8584_7PULSE         6
+#define LTC8584_8PULSE         7
+
 #define LTC6811_MD_00 0 //ADCOPT = 0 => 422 Hz else 1kHz
 #define LTC6811_MD_01 1 //ADCOPT = 0 => 27kHz (fast) else 14kHz
 #define LTC6811_MD_10 2 //ADCOPT = 0 => 7kHz (Normal) else 3kHz
