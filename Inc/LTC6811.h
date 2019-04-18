@@ -11,6 +11,34 @@
 #include "bms.h"
 #include "vstack.h"
 
+//Defines
+#define LTC6811_MD_00 0 //ADCOPT = 0 => 422 Hz else 1kHz
+#define LTC6811_MD_01 1 //ADCOPT = 0 => 27kHz (fast) else 14kHz
+#define LTC6811_MD_10 2 //ADCOPT = 0 => 7kHz (Normal) else 3kHz
+#define LTC6811_MD_11 3 //ADCOPT = 0 => 26 Hz (Filtered) else 2kHz
+
+#define DISCHARGE_PERMITTED     1
+#define DISCHARGE_NOT_PERMITTED 0
+
+//ADC Channel definition
+#define LTC6811_ADC_CALL  0x0 //all cells
+#define LTC6811_ADC_C17   0x1 //cells 1 and 7
+#define LTC6811_ADC_C28   0x2 // 2 and 8
+#define LTC6811_ADC_C39   0x3 // 3 and 9
+#define LTC6811_ADC_C410  0x4 // 4 and 10
+#define LTC6811_ADC_C511  0x5 // 5 and 11
+#define LTC6811_ADC_C612  0x6 // 6 and 12
+
+typedef enum {
+  RDCVA = 1,
+  RDCVB = 2,
+  RDCVC = 3,
+  RDCVD = 4,
+  RDCVE = 5,
+  RDCVF = 6
+}cell_groups_t;
+
+//Function Prototypes
 void LTC681x_adax(uint8_t MD, //ADC Mode
     uint8_t CHG //GPIO Channels to be measured)
     );

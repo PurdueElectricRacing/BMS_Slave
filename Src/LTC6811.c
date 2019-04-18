@@ -18,6 +18,17 @@ void wakeup_sleep(uint8_t total_ic) {
   }
 }
 
+//Wake SPI up from idle state
+void wakeup_idle(uint8_t total_ic) {
+  uint8_t tx_arr[1] = 0xFF;
+  for (int i = 0; i < total_ic; i++) {
+    HAL_GPIO_WritePin(VSTACK_SPI_SS_GPIO_Port, VSTACK_SPI_SS_Pin,
+        GPIO_PIN_RESET);
+    HAL_SPI_Transmit(LTC6811_SPI, tx_arr, 1, HAL_MAX_DELAY); //Guarantees the isoSPI will be in ready mode
+    HAL_GPIO_WritePin(VSTACK_SPI_SS_GPIO_Port, VSTACK_SPI_SS_Pin, GPIO_PIN_SET);
+  }
+}
+
 //Generic function to write 68xx commands. Function calculated PEC for tx_cmd data
 void cmd_68(uint8_t tx_cmd[2]) {
   uint8_t cmd[4];
@@ -177,18 +188,6 @@ void LTC681x_wrsctrl(uint8_t sctrl_reg, uint8_t tx_data[]) {
     write_count++;
   }
   write_68(1, cmd, write_buffer);
-}
-
-
-//Wake SPI up from idle state
-void wakeup_idle(uint8_t total_ic) {
-  uint8_t tx_arr[1] = 0xFF;
-  for (int i = 0; i < total_ic; i++) {
-    HAL_GPIO_WritePin(VSTACK_SPI_SS_GPIO_Port, VSTACK_SPI_SS_Pin,
-        GPIO_PIN_RESET);
-    HAL_SPI_Transmit(LTC6811_SPI, tx_arr, 1, HAL_MAX_DELAY); //Guarantees the isoSPI will be in ready mode
-    HAL_GPIO_WritePin(VSTACK_SPI_SS_GPIO_Port, VSTACK_SPI_SS_Pin, GPIO_PIN_SET);
-  }
 }
 
 //Calculates  and returns the CRC15

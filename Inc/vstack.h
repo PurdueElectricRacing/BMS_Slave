@@ -21,15 +21,6 @@
 #define LTC6811_SPI_ADDR  0x1 //Device Address
 #define LTC6811_SPI     &hspi1
 
-//ADC Channel definition
-#define LTC6811_ADC_CALL  0x0
-#define LTC6811_ADC_C17   0x1
-#define LTC6811_ADC_C28   0x2
-#define LTC6811_ADC_C39   0x3
-#define LTC6811_ADC_C410  0x4
-#define LTC6811_ADC_C511  0x5
-#define LTC6811_ADC_C612  0x6
-
 //Status Group Selection Definitions
 #define LTC6811_STATUS_ALL  0x0
 #define LTC6811_STATUS_SOC  0x1
@@ -44,30 +35,30 @@
 #define LTC6811_PUP     0x0 //Look up PUP
 
 //CMD Table
-#define LTC6811_CMD_WRCFGA  0x1
-#define LTC6811_CMD_WRCFGB  0x24
-#define LTC6811_CMD_RDCFGA  0x2
-#define LTC6811_CMD_RDCFGB  0x26
-#define LTC6811_CMD_RDCVA 0x4
-#define LTC6811_CMD_RDCVB 0x6
-#define LTC6811_CMD_RDCVC 0x8
-#define LTC6811_CMD_RDCVD 0xA
-#define LTC6811_CMD_RDCVE 0x9
-#define LTC6811_CMD_RDCVF 0xB
-#define LTC6811_CMD_RDAUXA  0xC
-#define LTC6811_CMD_RDAUXB  0xE
-#define LTC6811_CMD_RDAUXC  0xD
-#define LTC6811_CMD_RDAUXD  0xF
-#define LTC6811_CMD_RDSTATA 0x10
-#define LTC6811_CMD_RDSTATB 0x12
-#define LTC6811_CMD_WRSCTRL   0x14
-#define LTC6811_CMD_WRPWM   0x20
-#define LTC6811_CMD_WRPSB   0x1C
-#define LTC6811_CMD_RDSCTRL   0x16
-#define LTC6811_CMD_RDPWM   0x21
-#define LTC6811_CMD_RDPSB   0x1E
-#define LTC6811_CMD_STSCTRL   0x19
-#define LTC6811_CMD_CLRSCTRL  0x1C
+#define LTC6811_CMD_WRCFGA            0x1
+#define LTC6811_CMD_WRCFGB            0x24
+#define LTC6811_CMD_RDCFGA            0x2
+#define LTC6811_CMD_RDCFGB            0x26
+#define LTC6811_CMD_RDCVA             0x4
+#define LTC6811_CMD_RDCVB             0x6
+#define LTC6811_CMD_RDCVC             0x8
+#define LTC6811_CMD_RDCVD             0xA
+#define LTC6811_CMD_RDCVE             0x9
+#define LTC6811_CMD_RDCVF             0xB
+#define LTC6811_CMD_RDAUXA            0xC
+#define LTC6811_CMD_RDAUXB            0xE
+#define LTC6811_CMD_RDAUXC            0xD
+#define LTC6811_CMD_RDAUXD            0xF
+#define LTC6811_CMD_RDSTATA           0x10
+#define LTC6811_CMD_RDSTATB           0x12
+#define LTC6811_CMD_WRSCTRL           0x14
+#define LTC6811_CMD_WRPWM             0x20
+#define LTC6811_CMD_WRPSB             0x1C
+#define LTC6811_CMD_RDSCTRL           0x16
+#define LTC6811_CMD_RDPWM             0x21
+#define LTC6811_CMD_RDPSB             0x1E
+#define LTC6811_CMD_STSCTRL           0x19
+#define LTC6811_CMD_CLRSCTRL          0x1C
 #define LTC6811_CMD_ADCV
 #define LTC6811_CMD_ADOW
 #define LTC6811_CMD_CVST
@@ -80,14 +71,14 @@
 #define LTC6811_CMD_STATST
 #define LTC6811_CMD_ADCVAX
 #define LTC6811_CMD_ADCVSC
-#define LTC6811_CMD_CLRCELL   0x711
-#define LTC6811_CMD_CLRAUX    0x712
-#define LTC6811_CMD_CLRSTAT   0x713
-#define LTC6811_CMD_PLADC     0x714
-#define LTC6811_CMD_DIAGN     0x715
-#define LTC6811_CMD_WRCOMM    0x721
-#define LTC6811_CMD_RDCOMM    0x722
-#define LTC6811_CMD_STCOMM    0x723
+#define LTC6811_CMD_CLRCELL           0x711
+#define LTC6811_CMD_CLRAUX            0x712
+#define LTC6811_CMD_CLRSTAT           0x713
+#define LTC6811_CMD_PLADC             0x714
+#define LTC6811_CMD_DIAGN             0x715
+#define LTC6811_CMD_WRCOMM            0x721
+#define LTC6811_CMD_RDCOMM            0x722
+#define LTC6811_CMD_STCOMM            0x723
 
 #define GPIOx
 
