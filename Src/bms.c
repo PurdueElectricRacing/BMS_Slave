@@ -354,7 +354,7 @@ Success_t send_faults() {
   return SUCCESSFUL;
 }
 
-void debug_lights(flag_t orange, flag_t red, flag_t green, flag_t blue) {
+void debug_lights(flag_t green, flag_t blue, flag_t orange, flag_t red) {
   if (orange == ASSERTED) {
     HAL_GPIO_WritePin(ORANGE_LED_GPIO_Port, ORANGE_LED_Pin, GPIO_PIN_SET);
   } else {
