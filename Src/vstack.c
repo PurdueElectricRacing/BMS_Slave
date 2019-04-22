@@ -30,7 +30,7 @@ void task_VSTACK() {
 		  LTC681x_rdcv_reg((cell_groups_t) i, 1, data);
 		  //confirm the PEC value is correct
 		  recv_pec_val = byte_combine(data[7], data[6]);
-		  pec_val = pec15_calc(6, data);
+		  pec_val = LTC6811Pec(data, 6);
 		  if (recv_pec_val == pec_val) {
 		    //valid voltage data update the table
 		    if (xSemaphoreTake(bms.vtap.sem, TIMEOUT) == pdTRUE) {

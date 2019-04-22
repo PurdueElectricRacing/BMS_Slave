@@ -78,9 +78,6 @@ HAL_StatusTypeDef LTC6811_init();
 HAL_StatusTypeDef LTC6811_addrRead(uint8_t *dout, uint8_t len, uint16_t cmd);
 HAL_StatusTypeDef LTC6811_addrWrite(uint8_t *din, uint8_t len, uint16_t cmd);
 uint16_t LTC6811Pec(uint8_t *data, uint8_t len);
-uint16_t pec15_calc(uint8_t len, //Number of bytes that will be used to calculate a PEC
-    uint8_t *data //Array of data that will be used to calculate  a PEC
-    );
 void wakeup_idle(uint8_t total_ic);
 void LTC681x_wrsctrl(uint8_t sctrl_reg, uint8_t tx_data[]);
 void LTC681x_rdcv_reg(uint8_t reg, //Determines which cell voltage register is read back

@@ -20,7 +20,7 @@ void wakeup_sleep(uint8_t total_ic) {
 
 //Wake SPI up from idle state
 void wakeup_idle(uint8_t total_ic) {
-  uint8_t tx_arr[1] = 0xFF;
+  uint8_t tx_arr = 0xFF;
   for (int i = 0; i < total_ic; i++) {
     HAL_GPIO_WritePin(VSTACK_SPI_SS_GPIO_Port, VSTACK_SPI_SS_Pin,
         GPIO_PIN_RESET);
@@ -36,7 +36,7 @@ void cmd_68(uint8_t tx_cmd[2]) {
   uint8_t md_bits;
   cmd[0] = tx_cmd[0];
   cmd[1] = tx_cmd[1];
-  cmd_pec = pec15_calc(&cmd, 2);
+  cmd_pec = LTC6811Pec(&cmd[0], 2);
   cmd[2] = (uint8_t) (cmd_pec >> 8);
   cmd[3] = (uint8_t) (cmd_pec);
   HAL_GPIO_WritePin(VSTACK_SPI_SS_GPIO_Port, VSTACK_SPI_SS_Pin, GPIO_PIN_RESET);
@@ -55,7 +55,7 @@ void write_68(uint8_t total_ic, uint8_t tx_cmd[2], uint8_t data[]) {
   cmd = (uint8_t *) pvPortMalloc(CMD_LEN * sizeof(uint8_t));
   cmd[0] = tx_cmd[0];
   cmd[1] = tx_cmd[1];
-  cmd_pec = pec15_calc(2, cmd);
+  cmd_pec = LTC6811Pec(cmd, 2);
   cmd[2] = (uint8_t) (cmd_pec >> 8);
   cmd[3] = (uint8_t) (cmd_pec);
   cmd_index = 4;
@@ -66,7 +66,7 @@ void write_68(uint8_t total_ic, uint8_t tx_cmd[2], uint8_t data[]) {
       cmd[cmd_index] = data[((current_ic - 1) * 6) + current_byte];
       cmd_index = cmd_index + 1;
     }
-    data_pec = (uint16_t) pec15_calc(BYTES_IN_REG, &data[(current_ic - 1) * 6]); // calculating the PEC for each Iss configuration register data
+    data_pec = (uint16_t) LTC6811Pec(&data[(current_ic - 1) * 6], BYTES_IN_REG); // calculating the PEC for each Iss configuration register data
     cmd[cmd_index] = (uint8_t) (data_pec >> 8);
     cmd[cmd_index + 1] = (uint8_t) data_pec;
     cmd_index = cmd_index + 2;
@@ -88,7 +88,7 @@ int8_t read_68(uint8_t total_ic, uint8_t tx_cmd[2], uint8_t *rx_data) {
   uint16_t received_pec;
   cmd[0] = tx_cmd[0];
   cmd[1] = tx_cmd[1];
-  cmd_pec = pec15_calc(2, cmd);
+  cmd_pec = LTC6811Pec(cmd, 2);
   cmd[2] = (uint8_t) (cmd_pec >> 8);
   cmd[3] = (uint8_t) (cmd_pec);
   HAL_GPIO_WritePin(VSTACK_SPI_SS_GPIO_Port, VSTACK_SPI_SS_Pin, GPIO_PIN_RESET);
@@ -105,7 +105,7 @@ int8_t read_68(uint8_t total_ic, uint8_t tx_cmd[2], uint8_t *rx_data) {
     }
     received_pec = (rx_data[(current_ic * 8) + 6] << 8)
         + rx_data[(current_ic * 8) + 7];
-    data_pec = pec15_calc(6, &rx_data[current_ic * 8]);
+    data_pec = LTC6811Pec(&rx_data[current_ic * 8], 6);
     if (received_pec != data_pec) {
       pec_error = -1;
     }
@@ -160,7 +160,7 @@ void LTC681x_rdcv_reg(uint8_t reg, //Determines which cell voltage register is r
     cmd[1] = 0x0B;
     cmd[0] = 0x00;
   }
-  cmd_pec = pec15_calc(2, cmd);
+  cmd_pec = LTC6811Pec(cmd, 2);
   cmd[2] = (uint8_t) (cmd_pec >> 8);
   cmd[3] = (uint8_t) (cmd_pec);
 
@@ -191,9 +191,7 @@ void LTC681x_wrsctrl(uint8_t sctrl_reg, uint8_t tx_data[]) {
 }
 
 //Calculates  and returns the CRC15
-uint16_t pec15_calc(uint8_t len, //Number of bytes that will be used to calculate a PEC
-    uint8_t *data //Array of data that will be used to calculate  a PEC
-    ) {
+uint16_t LTC6811Pec(uint8_t *data, uint8_t len) {
   uint16_t remainder, addr;
   remainder = 16; //initialize the PEC
   for (uint8_t i = 0; i < len; i++) // loops for each byte in data array
@@ -389,7 +387,7 @@ uint8_t LTC681x_pladc() {
   uint16_t cmd_pec;
   cmd[0] = 0x07;
   cmd[1] = 0x14;
-  cmd_pec = pec15_calc(2, cmd);
+  cmd_pec = LTC6811Pec(cmd, 2);
   cmd[2] = (uint8_t) (cmd_pec >> 8);
   cmd[3] = (uint8_t) (cmd_pec);
   HAL_GPIO_WritePin(VSTACK_SPI_SS_GPIO_Port, VSTACK_SPI_SS_Pin, GPIO_PIN_RESET);
@@ -408,7 +406,7 @@ uint32_t LTC681x_pollAdc() {
   uint16_t cmd_pec;
   cmd[0] = 0x07;
   cmd[1] = 0x14;
-  cmd_pec = pec15_calc(2, cmd);
+  cmd_pec = LTC6811Pec(cmd, 2);
   cmd[2] = (uint8_t) (cmd_pec >> 8);
   cmd[3] = (uint8_t) (cmd_pec);
   HAL_GPIO_WritePin(VSTACK_SPI_SS_GPIO_Port, VSTACK_SPI_SS_Pin, GPIO_PIN_RESET);
