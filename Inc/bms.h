@@ -26,9 +26,10 @@
 
 //Constants
 #define NUM_VTAPS         6 //number of voltage taps per module
-#define NUM_TEMP          4 //number of thermistors per module
+#define NUM_TEMP          2 //number of thermistors per module
 
 //RTOS Constants
+#define NUM_TASKS			9 //the number of total tasks on the system
 #define BMS_MAIN_STACK_SIZE 128
 #define BMS_MAIN_PRIORITY   1
 #define HEARTBEAT_STACK_SIZE 128
@@ -48,6 +49,11 @@
 // Defaults (can be configured by master in real time)
 #define TEMP_POLL_RATE  1000
 #define VOLT_POLL_RATE  25
+
+#define VOLT_LOW_IMPOS    0         //0 volts (might be bad for LI-ion)
+#define VOLT_HIGH_IMPOS   0xFFFF    //6.3 volts
+#define TEMP_HIGH_IMPOS   0x7FFF    //3200 degrees
+#define TEMP_LOW_IMPOS    0x8000    //-3200 degrees
 
 //Macros
 #define bitwise_or(shift, mask, logical) (((uint8_t) logical << shift) & mask)
@@ -84,6 +90,18 @@ typedef enum power_state {
   POWER_ON = 0,
   POWER_OFF = 1,
 } powercmd_t;
+
+enum task_list {
+  TX_CAN = 0,
+  CAN_PROCESS = 1,
+  BMS_MAIN = 2,
+  HEARTBEAT = 3,
+  MASTER_WDAWG = 4,
+  VSTACK = 5,
+  ACQUIRE_TEMP = 6,
+  BROADCAST = 7,
+  ERROR_CHECK = 8
+};
 
 //structures
 enum bms_slave_state {
@@ -130,11 +148,14 @@ typedef struct {
   
   QueueHandle_t     q_rx_can;
   QueueHandle_t     q_tx_can;
+
+  TaskHandle_t		tasks[NUM_TASKS];
+
   fault_t           connected; //used to determine if connected to master
   fault_t           vstack_con; //connected to the vstack
   fault_t           temp1_con;
   fault_t           temp2_con;
-  flag_t           passive_en;
+  flag_t           	passive_en;
   
   params_t          param;
   
@@ -155,6 +176,6 @@ extern SPI_HandleTypeDef  hspi1;
 //Functions
 void task_bms_main();
 void initRTOSObjects();
-void initBMSobject();
+void initBMSobject(flag_t first);
 
 #endif /* BMS_H_ */

@@ -94,6 +94,8 @@ void Error_Handler(void);
 #define VSTACK_SPI_SCK_GPIO_Port GPIOA
 #define VCP_TX_Pin GPIO_PIN_2
 #define VCP_TX_GPIO_Port GPIOA
+#define PASSIVE_EN_Pin GPIO_PIN_3
+#define PASSIVE_EN_GPIO_Port GPIOA
 #define VSTACK_SPI_SS_Pin GPIO_PIN_4
 #define VSTACK_SPI_SS_GPIO_Port GPIOA
 #define VSTACK_SPI_MISO_Pin GPIO_PIN_6

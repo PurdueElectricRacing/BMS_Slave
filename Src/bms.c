@@ -47,6 +47,7 @@ void task_heartbeat() {
   while (1) {
     time_init = xTaskGetTickCount();
     HAL_GPIO_TogglePin(HEARTBEAT_GPIO_Port, HEARTBEAT_Pin);
+    HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
     vTaskDelayUntil(&time_init, HEARTBEAT_RATE);
   }
 }
@@ -76,6 +77,7 @@ void task_error_check() {
   fault_t fault = NORMAL;
   while (1) {
     time_init = xTaskGetTickCount();
+    fault = NORMAL;
     if (bms.state == NORMAL_OP) {
       if (bms.connected == FAULTED ||
           bms.temp1_con == FAULTED ||
@@ -90,6 +92,9 @@ void task_error_check() {
           xSemaphoreGive(bms.state_sem); //release sem
         }
       }
+    } else {
+      //suspend your task, it is task_bms_main's job to restart
+//      vTaskSuspend(NULL);
     }
     
     vTaskDelayUntil(&time_init, ERROR_CHECK_RATE);
@@ -118,21 +123,22 @@ void task_error_check() {
 *
 ***************************************************************************/
 void initRTOSObjects() {
-  //define q's
+  int i = 0;
+	//define q's
   bms.q_tx_can = xQueueCreate(CAN_TX_Q_SIZE, sizeof(CanTxMsgTypeDef));
   bms.q_rx_can = xQueueCreate(CAN_RX_Q_SIZE, sizeof(CanRxMsgTypeDef));
   
   //start tasks
-  xTaskCreate(task_txCan, "Transmit Can", CAN_TX_STACK_SIZE, NULL, CAN_TX_PRIORITY, NULL);
-  xTaskCreate(task_CanProcess, "Process Can", CAN_RX_STACK_SIZE, NULL, CAN_RX_PRIORITY, NULL);
-  xTaskCreate(task_bms_main, "Main Task", BMS_MAIN_STACK_SIZE, NULL, BMS_MAIN_PRIORITY, NULL);
-  xTaskCreate(task_heartbeat, "Heartbeat", HEARTBEAT_STACK_SIZE, NULL, HEARTBEAT_PRIORITY, NULL);
-  xTaskCreate(task_Master_WDawg, "Master WDawg", WDAWG_STACK_SIZE, NULL, WDAWG_PRIORITY, NULL);
-  xTaskCreate(task_VSTACK, "VSTACK", VSTACK_STACK_SIZE, NULL, VSTACK_PRIORITY, NULL);
-  xTaskCreate(task_acquire_temp, "temp", ACQUIRE_TEMP_STACK_SIZE, NULL, ACQUIRE_TEMP_PRIORITY, NULL);
-  xTaskCreate(task_broadcast, "broadcast", BROAD_STACK_SIZE, NULL, BROAD_PRIORITY, NULL);
+  xTaskCreate(task_txCan, "Transmit Can", CAN_TX_STACK_SIZE, NULL, CAN_TX_PRIORITY, *(TaskHandle_t*) &bms.tasks[i++]);
+  xTaskCreate(task_CanProcess, "Process Can", CAN_RX_STACK_SIZE, NULL, CAN_RX_PRIORITY, *(TaskHandle_t*) &bms.tasks[i++]);
+  xTaskCreate(task_bms_main, "Main Task", BMS_MAIN_STACK_SIZE, NULL, BMS_MAIN_PRIORITY, *(TaskHandle_t*) &bms.tasks[i++]);
+  xTaskCreate(task_heartbeat, "Heartbeat", HEARTBEAT_STACK_SIZE, NULL, HEARTBEAT_PRIORITY, *(TaskHandle_t*) &bms.tasks[i++]);
+  xTaskCreate(task_Master_WDawg, "Master WDawg", WDAWG_STACK_SIZE, NULL, WDAWG_PRIORITY, *(TaskHandle_t*) &bms.tasks[i++]);
+  xTaskCreate(task_VSTACK, "VSTACK", VSTACK_STACK_SIZE, NULL, VSTACK_PRIORITY, *(TaskHandle_t*) &bms.tasks[i++]);
+  xTaskCreate(task_acquire_temp, "temp", ACQUIRE_TEMP_STACK_SIZE, NULL, ACQUIRE_TEMP_PRIORITY, *(TaskHandle_t*) &bms.tasks[i++]);
+  xTaskCreate(task_broadcast, "broadcast", BROAD_STACK_SIZE, NULL, BROAD_PRIORITY, *(TaskHandle_t*) &bms.tasks[i++]);
   xTaskCreate(task_error_check, "Error Check", ERROR_CHECK_STACK_SIZE, NULL,
-              ERROR_CHECK_RATE_PRIORITY, NULL);
+              ERROR_CHECK_RATE_PRIORITY, *(TaskHandle_t*) &bms.tasks[i++]);
               
 }
 
@@ -154,38 +160,48 @@ void initRTOSObjects() {
 *
 *     Function Description: Initialize the BMS structure
 ***************************************************************************/
-void initBMSobject() {
+void initBMSobject(flag_t first) {
   uint8_t x = 0;
-  bms.can = &hcan1;
-  bms.spi = &hspi1;
-  bms.i2c = &hi2c1;
-  bms.state_sem = xSemaphoreCreateBinary();
+
+  if (first == ASSERTED) {
+    bms.state_sem = xSemaphoreCreateBinary();
+    bms.param.sem = xSemaphoreCreateBinary();
+    bms.can = &hcan1;
+    bms.spi = &hspi1;
+    bms.i2c = &hi2c1;
+    bms.temp.sem = xSemaphoreCreateBinary();
+    bms.vtap.sem = xSemaphoreCreateBinary();
+
+    wdawg.master_sem = xSemaphoreCreateBinary();
+
+    xSemaphoreGive(bms.temp.sem);
+    xSemaphoreGive(bms.vtap.sem);
+
+    xSemaphoreGive(wdawg.master_sem); //allows it to be taken
+
+    xSemaphoreGive(bms.state_sem);
+    xSemaphoreGive(bms.param.sem);
+  }
+
   bms.connected = FAULTED;
   bms.passive_en = DEASSERTED;
   bms.temp1_con = NORMAL; //todo: change when integrated
   bms.temp2_con = NORMAL; //unused for senior design TODO: fix when it's real
   bms.vstack_con = NORMAL; //todo: change when integrated
   
-  bms.param.sem = xSemaphoreCreateBinary();
   bms.param.temp_msg_en = ASSERTED;
   bms.param.volt_msg_en = ASSERTED;
   bms.param.temp_msg_rate = TEMP_POLL_RATE;
   bms.param.volt_msg_rate = VOLT_POLL_RATE;
   
   for (x = 0; x < NUM_VTAPS; x ++) {
-    bms.vtap.data[x] = 0;
+    bms.vtap.data[x] = VOLT_LOW_IMPOS;
   }
   for (x = 0; x < NUM_TEMP; x ++) {
-    bms.temp.data[x] = 0;
+    bms.temp.data[x] = TEMP_LOW_IMPOS;
   }
   
-  wdawg.master_sem = xSemaphoreCreateBinary();
   wdawg.new_msg = xTaskGetTickCount();
-  
-  xSemaphoreGive(wdawg.master_sem); //allows it to be taken
-  
-  xSemaphoreGive(bms.state_sem);
-  xSemaphoreGive(bms.param.sem);
 }
 
 /***************************************************************************
@@ -210,12 +226,17 @@ void initBMSobject() {
 ***************************************************************************/
 void task_bms_main() {
   TickType_t time_init = 0;
+
+  CanTxMsgTypeDef msg;
+
+  xQueueSendToBack(bms.q_tx_can, &msg, 100);
   while (1) {
     //just chilling
     time_init = xTaskGetTickCount();
     switch (bms.state) {
       case LOW_POWER:
         debug_lights(0, 0, 0, 0);
+
         //must have been woken up by interrupt
         if (xSemaphoreTake(bms.state_sem, TIMEOUT) == pdPASS) {
           bms.state = INIT;
@@ -224,7 +245,6 @@ void task_bms_main() {
         break;
       case INIT:
         debug_lights(0, 0, 0, 1);
-        //TODO: establish contact with Vstack/temp sensors
         HAL_GPIO_WritePin(LPM_GPIO_Port, LPM_Pin, GPIO_PIN_SET);
         if (bms.connected && bms.vstack_con && bms.temp1_con &&
             bms.temp2_con) { //only move to normal op when everything is connected
@@ -232,27 +252,27 @@ void task_bms_main() {
             bms.state = NORMAL_OP;
             xSemaphoreGive(bms.state_sem); //release sem
           }
+//          //re-enable the non-critical tasks
+//          vTaskResume(bms.tasks[BROADCAST]);
+//          vTaskResume(bms.tasks[ERROR_CHECK]);
         }
         break;
       case NORMAL_OP:
         debug_lights(0, 0, 1, 0);
         //TODO: read from all of the sensors
-        //TODO: send data to master
         //TODO: manage passive balancing if necessary
         break;
       case ERROR_BMS:
         debug_lights(0, 0, 1, 1);
         send_faults();
-        vTaskDelay(SEND_ERROR_DELAY);
-//        if (bms.connected) {
-//          vTaskDelay(SEND_ERROR_DELAY);
-//        } else {
-        //if master no longer connected shutdown
-//          if (xSemaphoreTake(bms.state_sem, TIMEOUT) == pdPASS) {
-//            bms.state = SHUTDOWN;
-//            xSemaphoreGive(bms.state_sem); //release sem
-//          }
-//    }
+        if (bms.connected) {
+          vTaskDelay(SEND_ERROR_DELAY);
+        } else {
+          if (xSemaphoreTake(bms.state_sem, TIMEOUT) == pdPASS) {
+            bms.state = SHUTDOWN;
+            xSemaphoreGive(bms.state_sem); //release sem
+          }
+        }
         break;
       case SHUTDOWN:
         debug_lights(0, 1, 0, 0);
@@ -261,15 +281,29 @@ void task_bms_main() {
         HAL_GPIO_WritePin(LPM_GPIO_Port, LPM_Pin, GPIO_PIN_RESET); //active low
         //todo: disable the SPI/I2C periphs so only wakeup on can
         //enter sleep mode and wait for interrupt to wake back up
-//        vTaskGetRunTimeStats(&buffer);
-//        FILE * fptr = fopen("runtimestats", "w");
-//        fwrite(&buffer, sizeof(char), 400, fptr);
-        HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+//        vTaskSuspendAll(); //disable the scheduler
+//        HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_RESET);
+//        HAL_Delay(500);
+//        HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_SET);
+//
+//        HAL_SuspendTick();
+//        HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+//        HAL_ResumeTick();
+//        xTaskResumeAll();
         break;
       default:
         break;
     }
     
+    msg.IDE = CAN_ID_STD;
+    msg.RTR = CAN_RTR_DATA;
+    msg.DLC = 2; //one for the macro faults
+    msg.StdId = 0x400;
+
+    msg.Data[0] = ID_SLAVE;
+    msg.Data[1] = (uint8_t) bms.state;
+
+    xQueueSendToBack(bms.q_tx_can, &msg, TIMEOUT);
     vTaskDelayUntil(&time_init, BMS_MAIN_RATE);
   }
   //never get here
@@ -332,12 +366,15 @@ Success_t send_faults() {
   msg.Data[1] = bitwise_or(FAULT_VOLT_SHIFT, FAULT_VOLT_MASK, bms.vstack_con);
   msg.Data[1] |= bitwise_or(FAULT_TEMP1_SHIFT, FAULT_TEMP1_MASK, bms.temp1_con);
   msg.Data[1] |= bitwise_or(FAULT_TEMP2_SHIFT, FAULT_TEMP2_MASK, bms.temp2_con);
+  msg.Data[1] |= bitwise_or(FAULT_BMSCON_SHIFT, FAULT_BMSCON_MASK, bms.connected);
   
+  msg.Data[1] = ~(msg.Data[1]) & 0x0F;
   xQueueSendToBack(bms.q_tx_can, &msg, 100);
   return SUCCESSFUL;
 }
 
-void debug_lights(flag_t orange, flag_t red, flag_t green, flag_t blue) {
+void debug_lights(flag_t green, flag_t blue, flag_t orange, flag_t red) {
+
   if (orange == ASSERTED) {
     HAL_GPIO_WritePin(ORANGE_LED_GPIO_Port, ORANGE_LED_Pin, GPIO_PIN_SET);
   } else {

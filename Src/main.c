@@ -148,7 +148,7 @@ int main(void)
 #endif
 
   initRTOSObjects();
-  initBMSobject();
+  initBMSobject(ASSERTED);
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -428,14 +428,21 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOA, PASSIVE_EN_Pin|LPM_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(VSTACK_SPI_SS_GPIO_Port, VSTACK_SPI_SS_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, BLUE_LED_Pin|GREEN_LED_Pin|LD3_Pin|ORANGE_LED_Pin 
                           |RED_LED_Pin|HEARTBEAT_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(LPM_GPIO_Port, LPM_Pin, GPIO_PIN_RESET);
+  /*Configure GPIO pins : PASSIVE_EN_Pin LPM_Pin */
+  GPIO_InitStruct.Pin = PASSIVE_EN_Pin|LPM_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pin : VSTACK_SPI_SS_Pin */
   GPIO_InitStruct.Pin = VSTACK_SPI_SS_Pin;
