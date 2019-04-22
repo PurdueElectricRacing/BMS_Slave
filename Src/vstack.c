@@ -5,7 +5,7 @@
 // *      Author: Matt Flanagan
 // */
 //
-#include "vstack.h"
+#include "bms.h"
 #include "stm32l4xx_hal_spi.h"
 
 //Function prototypes
@@ -36,15 +36,27 @@ static const uint16_t crc15Table[256]= {0x0,0xc599, 0xceab, 0xb32, 0xd8cf, 0x1d5
                                };
 
 HAL_StatusTypeDef LTC6811_init();
-void init_PEC15_Table();
+uint16_t LTC6811Pec(uint8_t *data, uint8_t len);
+void wakeup_sleep(void);
+void wakeup_idle(void);
+HAL_StatusTypeDef LTC6811_broadRead(uint8_t *dout,
+		uint8_t len, uint16_t cmd);
+HAL_StatusTypeDef LTC6811_broadCMD(uint16_t cmd);
+//void init_PEC15_Table();
 
 void task_VSTACK() {
   TickType_t time_init = 0;
-
+  wakeup_sleep();
+  LTC6811_init();
   while (1) {
     time_init = xTaskGetTickCount();
-    uint8_t din[1] = {0x1};
-    LTC6811_init();
+    //Send Start conversion command
+    LTC6811_broadCMD()
+    //Check if conversion complete or wait for end of conversion
+    HAL_Delay(2)
+    //Read ADC values
+    LTC6811_broadRead(&vtap, NUM_VTAPS, 0x260);
+
     //LTC6811_addrWrite(din, 1,  LTC6811_CMD_WRCFGA);
     vTaskDelayUntil(&time_init, VSTACK_RATE);
   }
@@ -56,6 +68,7 @@ HAL_StatusTypeDef init_LTC6811() {
   return HAL_OK;
 }
 
+//address Mode Commands
 HAL_StatusTypeDef LTC6811_addrWrite(uint8_t *din,
 		uint8_t len, uint16_t cmd) {
 	uint8_t * tx_arr;
@@ -118,15 +131,71 @@ HAL_StatusTypeDef LTC6811_addrRead(uint8_t *dout,
 		return HAL_ERROR;
 }
 
-//HAL_StatusTypeDef LTC6811_addrRead_IT(LTCHandle_t ltc)
+//Broadcast Commands
+HAL_StatusTypeDef LTC6811_broadCMD(uint16_t cmd)
+{
+	uint8_t tx[4];
+	uint16_t cmd_pec;
+	uint8_t md_bits;
+	HAL_StatusTypeDef status = HAL_OK;
 
-//HAL_StatusTypeDef LTC6811_addrPoll(LTCHandle_t ltc, uint8_t *din,
-//		uint8_t len) {
-//	//Generate CMD0 and CMD1 bits
-//	//Compile write array
-//	//pull SS line low
-//	//HAL_SPI_TransmitReceive
-//}
+	tx[0] = (uint8_t) (cmd >> 8);
+	tx[1] = (uint8_t) (cmd);
+
+
+	cmd_pec = LTC6811Pec(tx, 2);
+	tx[2] = (uint8_t)(cmd_pec >> 8);
+	tx[3] = (uint8_t)(cmd_pec);
+	HAL_GPIO_WritePin(VSTACK_SPI_SS_GPIO_Port, VSTACK_SPI_SS_Pin, GPIO_PIN_RESET);	//SS Low
+	status = HAL_SPI_Transmit(LTC6811_SPI, tx, 4, HAL_MAX_DELAY);
+	HAL_GPIO_WritePin(VSTACK_SPI_SS_GPIO_Port, VSTACK_SPI_SS_Pin, GPIO_PIN_SET);	//SS High
+	return status;
+}
+HAL_StatusTypeDef LTC6811_broadRead(uint8_t *dout,
+		uint8_t len, uint16_t cmd) {
+
+	uint8_t tx_arr[4];
+
+	//Generate CMD0 and CMD1 bits
+	tx_arr[0] = uint8_t (cmd >> 8);
+	tx_arr[1] = (uint8_t) cmd;
+
+	//Generate PEC
+	uint16_t pec = LTC6811Pec((uint8_t *) &tx_arr, 2);
+	tx_arr[2] = (uint8_t) pec;
+	tx_arr[3] = (uint8_t) (pec >> 8);
+
+	HAL_GPIO_WritePin(VSTACK_SPI_SS_GPIO_Port, VSTACK_SPI_SS_Pin, GPIO_PIN_RESET);	//SS Low
+	HAL_SPI_Transmit(LTC6811_SPI, tx_arr, 4, HAL_MAX_DELAY);
+	HAL_SPI_Receive(LTC6811_SPI, dout, len, HAL_MAX_DELAY);
+	HAL_GPIO_WritePin(VSTACK_SPI_SS_GPIO_Port, VSTACK_SPI_SS_Pin, GPIO_PIN_SET);	//SS High
+
+	//Check PEC
+	if ( LTC6811Pec(dout, len-2) == (uint16_t) dout[len - 2] ) {
+		return HAL_OK;
+	}
+	else
+		return HAL_ERROR;
+}
+
+
+
+void wakeup_idle(void)
+{
+	HAL_GPIO_WritePin(VSTACK_SPI_SS_GPIO_Port, VSTACK_SPI_SS_Pin, GPIO_PIN_RESET);	//SS Low
+	HAL_Delay(2); //Guarantees the isoSPI will be in ready mode
+	uint8_t rx = 0xff;
+	HAL_SPI_Receive(LTC6811_SPI, &rx, sizeof(rx), 5);
+	HAL_GPIO_WritePin(VSTACK_SPI_SS_GPIO_Port, VSTACK_SPI_SS_Pin, GPIO_PIN_SET);	//SS HIGH
+}
+
+void wakeup_sleep(void)
+{
+	HAL_GPIO_WritePin(VSTACK_SPI_SS_GPIO_Port, VSTACK_SPI_SS_Pin, GPIO_PIN_RESET);	//SS Low
+	HAL_Delay(300); // Guarantees the LTC6813 will be in standby
+	HAL_GPIO_WritePin(VSTACK_SPI_SS_GPIO_Port, VSTACK_SPI_SS_Pin, GPIO_PIN_SET);	//SS HIGH
+	HAL_Delay(10);
+}
 
 HAL_StatusTypeDef LTC6811_init() {
 	//Config ADC
@@ -135,12 +204,11 @@ HAL_StatusTypeDef LTC6811_init() {
 	tx_arr[1] =  LTC6811_MIN_PCKV * (16 * .0001);
 	//TODO need to fix bit shifting
 	//tx_arr[2] =  LTC6811_MAX_PCKV / (16 * .0001);
-
 	if (HAL_OK != LTC6811_addrWrite(tx_arr, 6, LTC6811_CMD_WRCFGA))
 		return HAL_ERROR;
 
 	uint8_t rx_arr[8] = {0,0,0,0,0,0,0,9};
-	LTC6811_addrRead(rx_arr, 8, LTC6811_CMD_RDCFGA);
+	LTC6811_broadRead(rx_arr, 8, LTC6811_CMD_RDCFGA);
 	if(rx_arr[1] != tx_arr[1] || rx_arr[2] != tx_arr[2])
 		return HAL_ERROR;
 
@@ -170,6 +238,7 @@ uint16_t LTC6811Pec(uint8_t *data, uint8_t len) {
   return(remainder*2);//The CRC15 has a 0 in the LSB so the remainder must be multiplied by 2
 }
 
+#ifdef INIT_PEC_TABLE
 void init_PEC15_Table()
 {
   int16_t remainder = 0;
@@ -192,3 +261,4 @@ void init_PEC15_Table()
     crc15Table[i] = remainder&0xFFFF;
   }
 }
+#endif //INIT_PEC_TABLE

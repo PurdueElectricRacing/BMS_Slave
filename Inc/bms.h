@@ -64,6 +64,11 @@
 #define extract_LSB(value) (value & 0x00FF)
 #define extract_MSB(value) ((value >> 8) & 0x00FF)
 
+//BMIC Configurables (See Table 39 for settings)
+#define LTC6811_MD		0		// ADC Mode
+#define LTC6811_DCP		0		//Discharge Permitted
+#define LTC6811_CH		0		//Cell Selection
+
 //enums
 typedef enum {
   SUCCESSFUL = 0,
