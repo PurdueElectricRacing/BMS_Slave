@@ -44,9 +44,12 @@
 #define FAULT_VOLT_MASK       0x01
 #define FAULT_TEMP1_MASK      0x02
 #define FAULT_TEMP2_MASK      0x04
+#define FAULT_BMSCON_MASK     0x08
+
 #define FAULT_VOLT_SHIFT      0
 #define FAULT_TEMP1_SHIFT     1
 #define FAULT_TEMP2_SHIFT     2
+#define FAULT_BMSCON_SHIFT    3
 
 //rates
 #define CAN_TX_RATE 5 / portTICK_RATE_MS //send at 20Hz

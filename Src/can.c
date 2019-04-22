@@ -87,7 +87,7 @@ void task_Master_WDawg() {
       //semaphore successfully taken
       if ((xTaskGetTickCount() - wdawg.new_msg) > WDAWG_RATE) {
         //master is not responding go into shutdown
-        bms.connected = 0;
+        bms.connected = FAULTED;
       }
       xSemaphoreGive(wdawg.master_sem);
     }
@@ -175,13 +175,12 @@ void task_CanProcess() {
             send_ack();
             bms.connected = NORMAL;
             if (xSemaphoreTake(bms.state_sem, TIMEOUT) == pdPASS) {
-              bms.state = LOW_POWER;
+              bms.state = INIT;
               xSemaphoreGive(bms.state_sem); //release sem
             }
           } else if (rx_can.Data[0] == POWER_OFF) {
             //shutdown message was received send ack and shutdown
             send_ack();
-            bms.connected = FAULTED;
             if (xSemaphoreTake(bms.state_sem, TIMEOUT) == pdPASS) {
               bms.state = SHUTDOWN;
               xSemaphoreGive(bms.state_sem); //release sem
@@ -251,7 +250,7 @@ void task_broadcast() {
     }
     else {
       //suspend your task, it is task_bms_main's job to restart
-      vTaskSuspend(NULL);
+//      vTaskSuspend(NULL);
     }
     vTaskDelayUntil(&time_init, BROADCAST_RATE);
   }
@@ -420,7 +419,7 @@ Success_t send_generic_msg(uint16_t items, can_broadcast_t msg_type) {
       break;
     case TEMP_MSG:
       for (x = 0; x < NUM_TEMP; x = x + VALUES_PER_MSG) {
-        msg.DLC = MACRO_MSG_LENGTH;
+        msg.DLC = GENERIC_MSG_LENGTH;
         msg.StdId = ID_SLAVE_TEMP_MSG;
         msg.Data[0] = i;  //slave id
         msg.Data[1] = x / VALUES_PER_MSG; //row

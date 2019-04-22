@@ -148,7 +148,7 @@ int main(void)
 #endif
 
   initRTOSObjects();
-  initBMSobject();
+  initBMSobject(ASSERTED);
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */

@@ -38,7 +38,7 @@ void task_acquire_temp() {
       //todo: read_temp1();
       //todo: process_temp(temp_values* temps);
       //todo: add temps to tx_queue
-      for (i = 0; i < (NUM_TEMP / 2); i++) {
+      for (i = 0; i < (NUM_TEMP); i++) {
       	vTaskDelay(WRITE_REQ_WAIT);
         conv_complete = DEASSERTED;
         write_data[0] = set_address(ID_TEMP_1, WRITE_ENABLE);
@@ -110,7 +110,7 @@ uint16_t adc2temp(uint16_t adc_value) {
   thermistor_res = (voltage * THERM_RESIST) / (VOLTAGE_TOP - voltage);
   //calculate the temperature
   temperature =  B_VALUE / log (thermistor_res / R_INF_3977) - KELVIN_2_CELSIUS;
-   return (uint16_t) temperature;
+   return (uint16_t)(10 * temperature);
 }
 
 

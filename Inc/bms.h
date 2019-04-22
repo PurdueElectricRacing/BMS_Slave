@@ -26,7 +26,7 @@
 
 //Constants
 #define NUM_VTAPS         6 //number of voltage taps per module
-#define NUM_TEMP          4 //number of thermistors per module
+#define NUM_TEMP          2 //number of thermistors per module
 
 //RTOS Constants
 #define NUM_TASKS			9 //the number of total tasks on the system
@@ -49,6 +49,11 @@
 // Defaults (can be configured by master in real time)
 #define TEMP_POLL_RATE  1000
 #define VOLT_POLL_RATE  25
+
+#define VOLT_LOW_IMPOS    0         //0 volts (might be bad for LI-ion)
+#define VOLT_HIGH_IMPOS   0xFFFF    //6.3 volts
+#define TEMP_HIGH_IMPOS   0x7FFF    //3200 degrees
+#define TEMP_LOW_IMPOS    0x8000    //-3200 degrees
 
 //Macros
 #define bitwise_or(shift, mask, logical) (((uint8_t) logical << shift) & mask)
@@ -166,6 +171,6 @@ extern SPI_HandleTypeDef  hspi1;
 //Functions
 void task_bms_main();
 void initRTOSObjects();
-void initBMSobject();
+void initBMSobject(flag_t first);
 
 #endif /* BMS_H_ */
