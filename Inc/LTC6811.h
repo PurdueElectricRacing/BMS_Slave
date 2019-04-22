@@ -92,6 +92,6 @@ int8_t read_68(uint8_t total_ic, uint8_t tx_cmd[2], uint8_t *rx_data);
 void write_68(uint8_t total_ic, uint8_t tx_cmd[2], uint8_t data[]);
 void cmd_68(uint8_t tx_cmd[2]);
 void wakeup_sleep(uint8_t total_ic);
-
+void LTC681x_clrsctrl();
 
 #endif /* LTC6811_H_ */

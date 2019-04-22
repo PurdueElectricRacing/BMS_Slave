@@ -7,7 +7,7 @@
 //
 #include "vstack.h"
 
-HAL_StatusTypeDef LTC6811_init();
+HAL_StatusTypeDef init_LTC6811();
 
 void task_VSTACK() {
 	TickType_t time_init = 0;
@@ -16,10 +16,11 @@ void task_VSTACK() {
 	uint8_t data[8];
 	uint16_t pec_val;
 	uint16_t recv_pec_val;
+
+	init_LTC6811();
+
 	while (1) {
 		time_init = xTaskGetTickCount();
-		uint8_t din[1] = { 0x1 };
-		LTC6811_init();
 
 		//start voltage conversion on all cells
 		LTC681x_adcv(LTC6811_MD_10, DISCHARGE_NOT_PERMITTED, LTC6811_ADC_CALL);
@@ -51,15 +52,11 @@ void task_VSTACK() {
 }
 
 HAL_StatusTypeDef init_LTC6811() {
-  uint8_t cmd[2];
 	//this function is used to initiate communication to the LTC6811 chip
   wakeup_sleep(1);
 
   //initialize the LTC8584's to be disabled and sending the voltage values back
-//  cmd[0] =  | (LTC6811_CMD_CLRSCTRL >> 8);
-  cmd[1] = (uint8_t) LTC6811_CMD_CLRSCTRL;
-  // cmd_68();
-
+  LTC681x_clrsctrl();
 
 	return HAL_OK;
 }

@@ -24,7 +24,7 @@ void wakeup_idle(uint8_t total_ic) {
   for (int i = 0; i < total_ic; i++) {
     HAL_GPIO_WritePin(VSTACK_SPI_SS_GPIO_Port, VSTACK_SPI_SS_Pin,
         GPIO_PIN_RESET);
-    HAL_SPI_Transmit(LTC6811_SPI, tx_arr, 1, HAL_MAX_DELAY); //Guarantees the isoSPI will be in ready mode
+    HAL_SPI_Transmit(LTC6811_SPI, (uint8_t*) &tx_arr, (uint16_t) 1, HAL_MAX_DELAY); //Guarantees the isoSPI will be in ready mode
     HAL_GPIO_WritePin(VSTACK_SPI_SS_GPIO_Port, VSTACK_SPI_SS_Pin, GPIO_PIN_SET);
   }
 }
@@ -33,7 +33,6 @@ void wakeup_idle(uint8_t total_ic) {
 void cmd_68(uint8_t tx_cmd[2]) {
   uint8_t cmd[4];
   uint16_t cmd_pec;
-  uint8_t md_bits;
   cmd[0] = tx_cmd[0];
   cmd[1] = tx_cmd[1];
   cmd_pec = LTC6811Pec(&cmd[0], 2);
@@ -175,7 +174,6 @@ void LTC681x_wrsctrl(uint8_t sctrl_reg, uint8_t tx_data[]) {
   uint8_t cmd[2];
   uint8_t write_buffer[256];
   uint8_t write_count = 0;
-  uint8_t c_ic = 0;
   if (sctrl_reg == 0) {
     cmd[0] = 0x00;
     cmd[1] = 0x14;
@@ -354,6 +352,17 @@ void LTC681x_adcvsc(uint8_t MD, //ADC Mode
 
 }
 
+/*
+The command clears the Sctrl registers and initializes
+all values to 0. The register will read back hexadecimal 0x00
+after the command is sent.
+*/
+void LTC681x_clrsctrl()
+{
+  uint8_t cmd[2]= {0x00 , 0x18};
+  cmd_68(cmd);
+}
+
 // Starts cell voltage  and GPIO 1&2 conversion Not required
 void LTC681x_adcvax(uint8_t MD, //ADC Mode
     uint8_t DCP //Discharge Permit
@@ -363,7 +372,7 @@ void LTC681x_adcvax(uint8_t MD, //ADC Mode
   md_bits = (MD & 0x02) >> 1;
   cmd[0] = md_bits | 0x04;
   md_bits = (MD & 0x01) << 7;
-  cmd[1] = md_bits | ((DCP & 0x01) << 4) + 0x6F;
+  cmd[1] = (md_bits | ((DCP & 0x01) << 4)) + 0x6F;
   cmd_68(cmd);
 }
 
