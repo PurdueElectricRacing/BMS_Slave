@@ -39,6 +39,12 @@
 #define LTC6811_ADC_C511  0x5 // 5 and 11
 #define LTC6811_ADC_C612  0x6 // 6 and 12
 
+#define LTC6811_GPIO1		0x01
+#define LTC6811_GPIO2		0x02
+#define LTC6811_GPIO3		0x04
+#define LTC6811_GPIO4		0x08
+#define LTC6811_GPIO5		0x10
+
 typedef enum {
   RDCVA = 1,
   RDCVB = 2,
@@ -72,6 +78,7 @@ void LTC681x_adcvax(uint8_t MD, //ADC Mode
 void LTC681x_adol(uint8_t MD, //ADC Mode
     uint8_t DCP //Discharge Permit
     );
+void LTC6811_wgpio(uint8_t gpiox);
 uint8_t LTC681x_pladc();
 uint32_t LTC681x_pollAdc();
 HAL_StatusTypeDef LTC6811_init();
@@ -91,6 +98,9 @@ void LTC681x_adcv(uint8_t MD, //ADC Mode
 int8_t read_68(uint8_t total_ic, uint8_t tx_cmd[2], uint8_t *rx_data);
 void write_68(uint8_t total_ic, uint8_t tx_cmd[2], uint8_t data[]);
 void cmd_68(uint8_t tx_cmd[2]);
+HAL_StatusTypeDef LTC6811_broadCMD(uint16_t cmd);
+HAL_StatusTypeDef LTC6811_broadRead(uint8_t *dout,
+		uint8_t len, uint16_t cmd);
 void wakeup_sleep(uint8_t total_ic);
 void LTC681x_clrsctrl();
 

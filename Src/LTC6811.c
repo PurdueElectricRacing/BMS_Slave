@@ -7,6 +7,83 @@
 
 #include "LTC6811.h"
 
+HAL_StatusTypeDef LTC6811_broadCMD(uint16_t cmd)
+{
+	uint8_t tx[4];
+	uint16_t cmd_pec;
+	uint8_t md_bits;
+	HAL_StatusTypeDef status = HAL_OK;
+
+	tx[0] = (uint8_t) (cmd >> 8);
+	tx[1] = (uint8_t) (cmd);
+
+
+	cmd_pec = LTC6811Pec(tx, 2);
+	tx[2] = (uint8_t)(cmd_pec >> 8);
+	tx[3] = (uint8_t)(cmd_pec);
+	HAL_GPIO_WritePin(VSTACK_SPI_SS_GPIO_Port, VSTACK_SPI_SS_Pin, GPIO_PIN_RESET);	//SS Low
+	status = HAL_SPI_Transmit(LTC6811_SPI, tx, 4, HAL_MAX_DELAY);
+	HAL_GPIO_WritePin(VSTACK_SPI_SS_GPIO_Port, VSTACK_SPI_SS_Pin, GPIO_PIN_SET);	//SS High
+	return status;
+}
+
+HAL_StatusTypeDef LTC6811_broadWrite(uint16_t cmd, uint8_t data[], uint8_t len)
+{
+	uint8_t * tx = (uint8_t *) pvPortMalloc((len  + 6)*sizeof(*tx));
+	HAL_StatusTypeDef status = HAL_ERROR;
+	uint16_t cmd_pec = 0;
+	if (NULL == tx)
+		return HAL_ERROR;
+
+	tx[0] = (uint8_t) (cmd >> 8);
+	tx[1] = (uint8_t) (cmd);
+	cmd_pec = LTC6811Pec(tx, 2);
+	tx[2] = (uint8_t)(cmd_pec >> 8);
+	tx[3] = (uint8_t)(cmd_pec);
+
+	memcpy(&tx[4], data, len);
+
+	HAL_GPIO_WritePin(VSTACK_SPI_SS_GPIO_Port, VSTACK_SPI_SS_Pin, GPIO_PIN_RESET);	//SS Low
+	status = HAL_SPI_Transmit(LTC6811_SPI, tx, len + 6, HAL_MAX_DELAY);
+	HAL_GPIO_WritePin(VSTACK_SPI_SS_GPIO_Port, VSTACK_SPI_SS_Pin, GPIO_PIN_SET);	//SS High
+
+	return status;
+
+}
+HAL_StatusTypeDef LTC6811_broadRead(uint8_t *dout,
+		uint8_t len, uint16_t cmd) {
+
+	uint8_t tx_arr[4];
+
+	//Generate CMD0 and CMD1 bits
+	tx_arr[0] = (uint8_t) (cmd >> 8);
+	tx_arr[1] = (uint8_t) cmd;
+
+	//Generate PEC
+	uint16_t pec = LTC6811Pec((uint8_t *) &tx_arr, 2);
+	tx_arr[2] = (uint8_t) pec;
+	tx_arr[3] = (uint8_t) (pec >> 8);
+
+	HAL_GPIO_WritePin(VSTACK_SPI_SS_GPIO_Port, VSTACK_SPI_SS_Pin, GPIO_PIN_RESET);	//SS Low
+	HAL_SPI_Transmit(LTC6811_SPI, tx_arr, 4, HAL_MAX_DELAY);
+	HAL_SPI_Receive(LTC6811_SPI, dout, len, HAL_MAX_DELAY);
+	HAL_GPIO_WritePin(VSTACK_SPI_SS_GPIO_Port, VSTACK_SPI_SS_Pin, GPIO_PIN_SET);	//SS High
+
+	//Check PEC
+	if ( LTC6811Pec(dout, len-2) == (uint16_t) dout[len - 2] ) {
+		return HAL_OK;
+	}
+	else
+		return HAL_ERROR;
+}
+
+void LTC6811_wgpio(uint8_t gpiox)
+{
+	uint8_t tx = (uint8_t) (gpiox << 5);
+	//TODO need to track previous WRCFGA register
+
+	LTC6811_broadWrite(LTC6811_CMD_WRCFGA, &tx, 1);
+}
 //Generic wakeup command to wake the LTC681x from sleep
 void wakeup_sleep(uint8_t total_ic) {
   for (int i = 0; i < total_ic; i++) {
