@@ -23,6 +23,7 @@ void task_VSTACK() {
 		time_init = xTaskGetTickCount();
 
 		//start voltage conversion on all cells
+		wakeup_sleep(1);
 		LTC681x_adcv(LTC6811_MD_10, DISCHARGE_NOT_PERMITTED, LTC6811_ADC_CALL);
 		//poll until it is complete
 		LTC681x_pollAdc();
@@ -30,7 +31,7 @@ void task_VSTACK() {
 		for (i = 1; i <= (NUM_VTAPS / 3); i++) { //each cell reg contains 3 voltage values
 		  LTC681x_rdcv_reg((cell_groups_t) i, 1, data);
 		  //confirm the PEC value is correct
-		  recv_pec_val = byte_combine(data[7], data[6]);
+		  recv_pec_val = byte_combine(data[6], data[7]);
 		  pec_val = LTC6811Pec(data, 6);
 		  if (recv_pec_val == pec_val) {
 		    //valid voltage data update the table
