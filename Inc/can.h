@@ -12,8 +12,8 @@
 #include "stm32l4xx_hal_can.h"
 
 //Constants
-#define SLAVE_ONE 1
-#define SLAVE_TWO 0
+#define SLAVE_ONE 0
+#define SLAVE_TWO 1
 
 //used to set the internal address of can messages so Master knows who is sending
 #ifdef SLAVE_ONE

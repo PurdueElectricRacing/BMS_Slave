@@ -192,7 +192,7 @@ void initBMSobject(flag_t first) {
   bms.param.temp_msg_en = ASSERTED;
   bms.param.volt_msg_en = ASSERTED;
   bms.param.temp_msg_rate = TEMP_POLL_RATE;
-  bms.param.volt_msg_rate = VOLT_POLL_RATE;
+  bms.param.volt_msg_rate = VOLT_POLL_RATE * 40;
   
   for (x = 0; x < NUM_VTAPS; x ++) {
     bms.vtap.data[x] = VOLT_LOW_IMPOS;
@@ -303,7 +303,7 @@ void task_bms_main() {
     msg.Data[0] = ID_SLAVE;
     msg.Data[1] = (uint8_t) bms.state;
 
-    xQueueSendToBack(bms.q_tx_can, &msg, TIMEOUT);
+//    xQueueSendToBack(bms.q_tx_can, &msg, TIMEOUT);
     vTaskDelayUntil(&time_init, BMS_MAIN_RATE);
   }
   //never get here

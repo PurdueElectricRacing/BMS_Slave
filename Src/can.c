@@ -393,7 +393,7 @@ Success_t send_generic_msg(uint16_t items, can_broadcast_t msg_type) {
       for (x = 0; x < NUM_VTAPS; x = x + VALUES_PER_MSG) {
         msg.DLC = GENERIC_MSG_LENGTH;
         msg.StdId = ID_SLAVE_VOLT_MSG;
-        msg.Data[0] = i;  //slave id
+        msg.Data[0] = ID_SLAVE;  //slave id
         msg.Data[1] = x / VALUES_PER_MSG; //row
         msg.Data[2] = extract_MSB(bms.vtap.data[x]);
         msg.Data[3] = extract_LSB(bms.vtap.data[x]);
@@ -421,7 +421,7 @@ Success_t send_generic_msg(uint16_t items, can_broadcast_t msg_type) {
       for (x = 0; x < NUM_TEMP; x = x + VALUES_PER_MSG) {
         msg.DLC = GENERIC_MSG_LENGTH;
         msg.StdId = ID_SLAVE_TEMP_MSG;
-        msg.Data[0] = i;  //slave id
+        msg.Data[0] = ID_SLAVE;  //slave id
         msg.Data[1] = x / VALUES_PER_MSG; //row
         msg.Data[2] = extract_MSB(bms.temp.data[x]);
         msg.Data[3] = extract_LSB(bms.temp.data[x]);
