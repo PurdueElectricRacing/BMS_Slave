@@ -47,6 +47,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef* hcan) {
   HAL_CAN_GetRxMessage(hcan, 0, &header, rx.Data);
   rx.DLC = header.DLC;
   rx.StdId = header.StdId;
+
   xQueueSendFromISR(bms.q_rx_can, &rx, 0);
   
   //master watchdawg task
@@ -86,7 +87,7 @@ void task_Master_WDawg() {
       //semaphore successfully taken
       if ((xTaskGetTickCount() - wdawg.new_msg) > WDAWG_RATE) {
         //master is not responding go into shutdown
-        bms.connected = 0;
+        bms.connected = FAULTED;
       }
       xSemaphoreGive(wdawg.master_sem);
     }
@@ -174,13 +175,12 @@ void task_CanProcess() {
             send_ack();
             bms.connected = NORMAL;
             if (xSemaphoreTake(bms.state_sem, TIMEOUT) == pdPASS) {
-              bms.state = LOW_POWER;
+              bms.state = INIT;
               xSemaphoreGive(bms.state_sem); //release sem
             }
           } else if (rx_can.Data[0] == POWER_OFF) {
             //shutdown message was received send ack and shutdown
             send_ack();
-            bms.connected = FAULTED;
             if (xSemaphoreTake(bms.state_sem, TIMEOUT) == pdPASS) {
               bms.state = SHUTDOWN;
               xSemaphoreGive(bms.state_sem); //release sem
@@ -188,13 +188,12 @@ void task_CanProcess() {
           }
           break;
         case ID_MAS_PASSIVE:
-          //see if this pertains to you and then toggle passive balancing if so
+          //see if this pertains to you and then write passive balancing as requested
           if (rx_can.Data[0] == ID_SLAVE && bms.state == NORMAL_OP) {
-            bms.passive_en = !bms.passive_en;
-            if (bms.passive_en == 0) {
-              //todo: shutdown_passive();
+            if (rx_can.Data[1] == 0) {
+              //HAL_GPIO_WritePin(PASSIVE_EN_GPIO_Port, PASSIVE_EN_Pin, GPIO_PIN_RESET);
             } else {
-              //todo: enable_passive();
+              //HAL_GPIO_WritePin(PASSIVE_EN_GPIO_Port, PASSIVE_EN_Pin, GPIO_PIN_SET);
             }
           }
           break;
@@ -248,6 +247,10 @@ void task_broadcast() {
       }
       
       i++;
+    }
+    else {
+      //suspend your task, it is task_bms_main's job to restart
+//      vTaskSuspend(NULL);
     }
     vTaskDelayUntil(&time_init, BROADCAST_RATE);
   }
@@ -387,10 +390,49 @@ Success_t send_generic_msg(uint16_t items, can_broadcast_t msg_type) {
   
   switch (msg_type) {
     case VOLT_MSG:
+#ifdef DUAL_IC
+for (i = 0; i < 2; ++i)
+{
+	for (x = 0; x < NUM_VTAPS; x = x + VALUES_PER_MSG)
+	{
+		msg.DLC = GENERIC_MSG_LENGTH;
+        msg.StdId = voltID[i];
+        msg.Data[0] = ID_SLAVE;  //slave id
+        msg.Data[1] = x / VALUES_PER_MSG; //row
+        msg.Data[2] = extract_MSB(bms.vtap[i].data[x]);
+        msg.Data[3] = extract_LSB(bms.vtap[i].data[x]);
+        if (x + 1 < NUM_VTAPS)
+        {
+          msg.Data[4] = extract_MSB(bms.vtap[i].data[x + 1]);
+          msg.Data[5] = extract_LSB(bms.vtap[i].data[x + 1]);
+        }
+        else
+        {
+          msg.Data[4] = 0;
+          msg.Data[5] = 0;
+        }
+        if (x + 2 < NUM_VTAPS)
+        {
+          msg.Data[6] = extract_MSB(bms.vtap[i].data[x + 2]);
+          msg.Data[7] = extract_LSB(bms.vtap[i].data[x + 2]);
+        }
+        else
+        {
+          msg.Data[6] = 0;
+          msg.Data[7] = 0;
+        }
+
+        if (xQueueSendToBack(bms.q_tx_can, &msg, 100) != pdPASS)
+        {
+          status = FAILURE;
+        }
+     }
+}
+#else
       for (x = 0; x < NUM_VTAPS; x = x + VALUES_PER_MSG) {
         msg.DLC = GENERIC_MSG_LENGTH;
-        msg.StdId = ID_SLAVE_VOLT_MSG;
-        msg.Data[0] = i;  //slave id
+        msg.StdId = ID_SLAVE_VOLT_ONE;
+        msg.Data[0] = ID_SLAVE;  //slave id
         msg.Data[1] = x / VALUES_PER_MSG; //row
         msg.Data[2] = extract_MSB(bms.vtap.data[x]);
         msg.Data[3] = extract_LSB(bms.vtap.data[x]);
@@ -413,12 +455,13 @@ Success_t send_generic_msg(uint16_t items, can_broadcast_t msg_type) {
           status = FAILURE;
         }
       }
+#endif
       break;
     case TEMP_MSG:
       for (x = 0; x < NUM_TEMP; x = x + VALUES_PER_MSG) {
-        msg.DLC = MACRO_MSG_LENGTH;
+        msg.DLC = GENERIC_MSG_LENGTH;
         msg.StdId = ID_SLAVE_TEMP_MSG;
-        msg.Data[0] = i;  //slave id
+        msg.Data[0] = ID_SLAVE;  //slave id
         msg.Data[1] = x / VALUES_PER_MSG; //row
         msg.Data[2] = extract_MSB(bms.temp.data[x]);
         msg.Data[3] = extract_LSB(bms.temp.data[x]);

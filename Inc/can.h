@@ -12,8 +12,8 @@
 #include "stm32l4xx_hal_can.h"
 
 //Constants
-#define SLAVE_ONE 1
-#define SLAVE_TWO 0
+#define SLAVE_ONE 0
+#define SLAVE_TWO 1
 
 //used to set the internal address of can messages so Master knows who is sending
 #ifdef SLAVE_ONE
@@ -31,8 +31,11 @@
 //Slave -> Master
 #define ID_SLAVE_ACK          0x640
 #define ID_SLAVE_FAULT_CODE   0x641
-#define ID_SLAVE_VOLT_MSG     0x642
-#define ID_SLAVE_TEMP_MSG     0x643
+#define ID_SLAVE_VOLT_ONE     0x642
+#define ID_SLAVE_VOLT_TWO     0x643 //THIS HAS CHANGED!!! BE WARY!!!
+#define ID_SLAVE_TEMP_MSG     0x644 //THIS HAS CHANGED!!! BE WARY!!!
+
+static const uint16_t voltID[2] = {ID_SLAVE_VOLT_ONE, ID_SLAVE_VOLT_TWO};
 
 #define MACRO_MSG_LENGTH          7
 #define GENERIC_MSG_LENGTH        8
@@ -44,9 +47,12 @@
 #define FAULT_VOLT_MASK       0x01
 #define FAULT_TEMP1_MASK      0x02
 #define FAULT_TEMP2_MASK      0x04
+#define FAULT_BMSCON_MASK     0x08
+
 #define FAULT_VOLT_SHIFT      0
 #define FAULT_TEMP1_SHIFT     1
 #define FAULT_TEMP2_SHIFT     2
+#define FAULT_BMSCON_SHIFT    3
 
 //rates
 #define CAN_TX_RATE 5 / portTICK_RATE_MS //send at 20Hz

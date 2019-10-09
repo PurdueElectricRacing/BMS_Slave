@@ -6,3 +6,4 @@
 !.gitignore
 !*.ioc
 !*.bat
+.DS_Store
