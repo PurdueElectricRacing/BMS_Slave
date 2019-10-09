@@ -9,11 +9,19 @@ BMS slave is a portion of a distributed battery management system outlined [here
 
 This is accomplished via the use of the `LTC6811-X` IC. This IC uses a multiplexer to take analog values of each cell's voltage in an efficient manner. Using this IC and an `STM32` microcontroller, the data required can be collected and sent to the master board for further processing. This document will outline the code written to facillitate the use of this IC, as well as describing the methods used in the code and why they are implemented on a higher level. Hopefully, this document will outline holes in the software while giving information about the processes running on the microcontroller.
 
+## **Roadmap**
+
+- [X] Functioning voltage readings
+- [X] Functioning temperature readings
+- [ ] Fully functioning PEC for `LTC6811-2`
+- [ ] Individual cell faults
+- [ ] Optimization of CAN traffic for fault increase
+
 ## **Basic Structure**
 
 The BMS slave `STM32` uses `FreeRTOS` to manage scheduling and execution of code. By doing this, the application can run multiple threads "simultaneously" allowing for easier development. Upon startup, a few tasks are spawned. In order, the functions started are:
 
-```
+```C
 task_txCan()
 task_CanProcess()
 task_bms_main()
