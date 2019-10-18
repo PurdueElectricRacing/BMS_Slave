@@ -13,6 +13,8 @@ This is accomplished via the use of the `LTC6811-X` IC. This IC uses a multiplex
 
 - [X] Functioning voltage readings
 - [X] Functioning temperature readings
+- [ ] Verification of dual IC mode
+- [ ] Verification of diagnostics mode
 - [ ] Fully functioning PEC for `LTC6811-2`
 - [ ] Individual cell faults
 - [ ] Optimization of CAN traffic for fault increase
@@ -39,7 +41,14 @@ Before diving into what each task is and how the operate, first, the BMS slave m
 
 ### _**task_bms_main()**_
 
-`task_bms_main`, as the name implies, is the main funcitoning task of the slave module. It is a [`finite state machine`](https://brilliant.org/wiki/finite-state-machines/) that determines the operating characteristics of the slave module. The states of slave are `low power`, `init`, `normal operation`, `error`, and `shutdown`. When the master module sends a `CAN` message commanding the slave module to enter low power mode, the lights of the board are disabled and processing effectively stops. In order for the slave to wake again, it must be woken via an interrupt of some form. Essentially, low power mode just waits for an interrupt and does nothing special. The initializatin state is used to verify a valid connection to the master module. Also, prior to entering the normal operation state, the debug lights are set to verify the current state of the board. Following init comes normal operation. This is the typical state for the slave module. While the task does nothing special inside it, the threads `FreeRTOS` runs sends required information over `CAN`. In the future, this state will be populated with required parameter calculations as well as `CAN broadcast` rather than simply sending messages all the time. The error mode is quite self explanatory. This mode is used to send a special `CAN` message with included information about faults in the battery module. The debug lights are also used to display the faulted state.
+`task_bms_main`, as the name implies, is the main functioning task of the slave module. It is a [`finite state machine`](https://brilliant.org/wiki/finite-state-machines/) that determines the operating characteristics of the slave module. The states of slave are `low power`, `init`, `normal operation`, `error`, and `shutdown`. The main loop of the main funciton is as follows:
+
+1. If the master module sends a `CAN` message commanding the slave to enter low power mode, the state is switched to low power mode, stopping major processing.
+2. The slave is then woken at some point via in interrupt and enters the init state.
+3. The init state sets debug lights and sets the default values for the slave module.
+4. Following init is normal operation where the slave module gathers cell data and sends faults when required. This is the typical state for the slave module to be in.
+5. If a set bound is exceeded, or if something disconnects, the slave will enter the error state which broadcasts all errors to the main module.
+6. The shutdown state enters the low power sleep state.
 
 In its current implementation, this is all the main task does as most of the vital processes slave runs are activated by `osKernalStart()` rather than the state machine itself. Therefore, the main task serves to put the slave module into the sleep state at the appropriate time, as well as broadcast faults gathered by the rest of the module.
 
@@ -47,7 +56,23 @@ The code for this portion is quite simple. Therefore, no in depth analysis will 
 
 ### _**task_VSTACK()**_
 
-`task_VSTACK` is, quite possibly, the most imporatant task the slave module runs. This is due to the fact that the job of the task is to monitor cell voltages and raise error flags when a parameter is violated. It does this via the `SPI` communication protocol which communicates with an `LTC6811-2 BMIC`. The datasheet for this part can be found [here](https://www.analog.com/media/en/technical-documentation/data-sheets/68111fb.pdf). There are a few major things completed by this function. First, the funciton begins commmunication with the BMIC by bringing the chip out of standby state. Then, it writes the configuration registers for over/under-volt testing by sending the chip a `WRCFGA` command. This is done through the `init_LTC6811()` function. Following the initialization period, the slave module and the BMIC enter a loop of back and forth communication. First, the slave module sends a broadcast command teslling the BIMC to poll cells 1 and 7 for conversion. This is done to ensure that the multiplexer on the BMIC has time to settle prior to reading all cells. After waiting for a specified amount of time (given in the datasheet), the BMICs are instructed to measure all cells using the `ADCV` command. This command is given in broadcast mode so that both BMICs on the board will do complete the requested polling. Following the cell polling, the cell block registers are read one by one to gather cell voltages. This command is issued in address mode as each block needs to be read individually. Following the reading of the cells, diagnostics are performed every 10 cycles. The diagnostics are run using both the `RDSTATB` and `ADOW` commands. The `RDSTATB` requests the values in the status b register group. In this group are values telling whether or not each cell has over/under-volted during operation. Also, the group contains a value telling whether or not the multiplexer has faulted. Using these two sets of values, most faults with the BMS slave can be determined. The `ADOW` command is used to determine if there is an open wire anywhere in the system. If there is, the voltages should be marked as unknown, and an error must occur. In essence, `task_VSTACK` simply requests voltages from the BMIC, stores those voltages, and checks for faults in the system. All other processing (such as sending over CAN and the actual generation of fault flags) is done elsewhere.
+`task_VSTACK` is, quite possibly, the most imporatant task the slave module runs. This is due to the fact that the job of the task is to monitor cell voltages and raise error flags when a parameter is violated. It does this via the `SPI` communication protocol which communicates with an `LTC6811-2 BMIC`. The datasheet for this part can be found [here](https://www.analog.com/media/en/technical-documentation/data-sheets/68111fb.pdf). The task follows a very logical set of steps during operation. These steps are as follows:
+
+1. [B] The task initializes communication with the `BMIC` by pulsing the enable line.
+2. [B] The slave module writes cell over/undervoltage values using the `WRCFGA` command.
+3. [B] The `BMIC` enters a conversion mode in which cells 1 to 7 are polled for conversion.
+
+> Not all cells are measured in this pass. The reasoning for this is to allow the multiplexer to settle prior to polling *all* cells. This note can be found in the applications sectinon of the datasheet.
+
+4. The slave module waits for a set amount of microseconds according to the poll rate (typically 7 kHz) for the mux to settle.
+5. [B] The `BMIC` enters a conversion mode in which *all* cells are polled for conversion.
+
+> B means the command is sent in broadcast mode. A means the command is sent in address mode. The difference between the two modes can be found in the datasheet.
+
+6. [A] The slave module requests the voltage register groups and saves the data for processing.
+7. Every 10 cycles of the task runs diagnostics. These diagnostics can be found in the datasheet.
+
+> All other processing (such as sending over CAN and the actual generation of fault flags) is done elsewhere.
 
 ### _**task_txCan()**_
 
@@ -55,15 +80,33 @@ The code for this portion is quite simple. Therefore, no in depth analysis will 
 
 > Note: `task_txCan()` **DOES NOT** package messages. The messages are packaged in their respective tasks.
 
-The first thing that the task does is declare a CAN message typedef. This will allow the information to be copied into a header message for sending. Following this, the current tick count is gathered to allow for proper delaying during the task. The task checks the BMS queue to determine if the queue has something waiting to send prior to actually sending the message. If there is something waiting to send, the task will take the message out of the queue and begin copying the packaged message into a header "frame". A mailbox is then created for the sending of the CAN frame and checked to ensure it is not full. Then, the message is officially sent using `HAL_CAN_AddTxMessage`.
+The task does a few things in order:
+
+1. The task declares a CAN message struct to allow for the creation of a header medssage.
+2. The current tick count is gathered for later delaying.
+3. The task checks a queue to determine if there is a message waiting to send.
+4. If there is something waiting to send, the task takes the CAN frame out of the queue and begins the formation of a header frame.
+5. After the header frame is created, a mailbox is created/checked to make sure it is not full.
+6. The message is officially sent using HAL, and the task runds its delay.
 
 ### _**task_CanProcess()**_
 
-`task_CanProcess()` is the means by which CAN frames are processed after recieving them. The task does not run as an interrupt handler. Rather, it constantly checks a queue that is filled by `HAL_CAN_RxFifo0MsgPendingCallback` which is called by an interrupt when a CAN frame is recieved. First, the task checks if the queue has a message to process. If there is something in the queue, the task will take it out and begin a switch case statement to determine what to do with the message. If the CAN ID of the message is `ID_MAS_POW_CMD`, the BMS slave must either exit or enter low power state. The first bit in the data field of the recieved message determines what the slave is to do. If this bit is `POWER_ON`, the state of the finite state machine described above is set to `INIT`, an acknowledgement of command reception is sent back to the master module, and the slave module stores is connection status as connected. If the first bit of the data field is set to `POWER_OFF`, the finite state machine is set to `SHUTDOWN`, and an acknowledgement of the command is sent back to the master module. If the CAN ID of the message is `ID_MAS_PASSIVE`, the slave module will attempt to balance the cells of the module. In its current implementation, this CAN ID will not make the slave do anything. If the CAN ID is `ID_MAS_WDAWG`, the master module is attempting to tell the slave that it is alive and well. In this scenario, the slave module simply sends an acknowledgement back to main to let it know that the message was properly recieved. Finally, if the CAN ID is `ID_MAS_CONFIG`, the slave will attempt to set voltage and temperature parameters based on the information in the message. Using this, master has the ability to change the message rates for both the voltage and temperature measurements.
+`task_CanProcess()` is the means by which CAN frames are processed after recieving them. The task does not run as an interrupt handler. Rather, it constantly checks a queue that is filled by `HAL_CAN_RxFifo0MsgPendingCallback` which is called by an interrupt when a CAN frame is recieved. The steps for sending are as follows:
+
+1. The task checks to see if there is a message to process in the queue.
+2. If there is something in the queue, the task takes it out of the queue.
+3. The task enters a switch case statement with the CAN frame ID as the target.
+4. If the ID is `ID_MAS_POW_CMD`, the BMS will enter or exit low power state depending on the bits in the message.
+
+> If the first bit is `POWER_ON`, the slave state is set to `INIT`. If the first bit is `POWER_OFF`, the slave state is set to `SHUTDOWN`
+
+5. If the ID is `ID_MAS_PASSIVE`, the BMS will attempt to balance the cells of the module (this will, more than likely, be deprecated via passive balancing)
+6. If the ID is `ID_MAS_WDAWG`, the salve will send an acknowledgement to master letting it know that both boards are alive and well.
+7. If the ID is `ID_MAS_CONFIG`, the slave will attempt to set voltage and temperature parameters based on the information in the measurement.
 
 ### _**task_heartbeat()**_
 
-The heartbeat task literally just blinks an LED... That's all... Simple and easy!
+The heartbeat task literally just blinks an LED... That's all... Simple and easy! However, a better system might be put in place in the future.
 
 ### _**task_Master_WDawg()**_
 
@@ -71,11 +114,24 @@ The master watchdog task is closely related to the `ID_MAS_WDAWG` CAN ID discuss
 
 ### _***task_acquire_temp()***_
 
-`task_acquire_temp()` does exactly what the name suggests... Acquires temperatures! To start its time, the task initializes the [`LTC2497`](https://www.mouser.com/datasheet/2/609/2497fb-1267645.pdf) by attempting to communicate over I2C (this will be implemented in the future). Follwing this, the task communicates with the chip and requests ADC values to be collected. When the I2C bus becomes ready again following the read, the task requests the values and starts handling the data.The ADC value from the chip is extracted from the I2C return using `adc_extract()`, and the ADC value is converted to a real temperature using `adc2temp()`. This value is then stored in its appropriate location in the BMS struct. This task is very dependent on knowledge of the datasheet, so it is recommended that the datasheet be read in full prior to work on this task.
+`task_acquire_temp()` does exactly what the name suggests... Acquires temperatures! This is done in the following manner:
+
+1. The task initializes the [`LTC2497`](https://www.mouser.com/datasheet/2/609/2497fb-1267645.pdf) by attempting to communicate over I2C.
+2. The task requests ADC values to be collected.
+3. When the I2C bus becomes ready again, the task requests the ADC values and starts handling the data.
+4. The ADC values from the chip are extracted from the I2C return using `adc_extract()`.
+5. The ADC values from the chip are converted to real world temperatures using `adc2temp()`.
+6. These values are stored in the BMS struct for further processing.
+
+> This task (like VSTACK) is very dependent on knowledge of the datasheet, so it is recommended that the datasheet be read in full prior to work on this task.
 
 ### _***task_broadcast()***_
 
-`task_broadcast()` is in charge of the regular flow of data out of the slave module via the CAN bus. It checks to make sure that the master module is ready to recieve both voltage and temperature information by checking to see if the enable flags are in the `ASSERTED` state. Following this, the task will use `send_volt_msg()` and `send_temp_msg()` to handle the sending of all values. These functions are quite straightforward. A CAN frame is generated with the required ID, length, and data in the required positions and added to the back of the transmit queue for `task_txCan()` to send to the master module.
+`task_broadcast()` is in charge of the regular flow of data out of the slave module via the CAN bus. It does this by doing the following:
+
+1. The task checks to make sure the master module is ready to recieve both voltage and temperature information by checking to see if the enable flags are `ASSERTED`.
+2. If both flags are `ASSERTED`, the task will use `send_volt_msg()` and `send_temp_msg()` to handle the sending of all values.
+3. A CAN frame is generated with the required ID, length, and data in the required positions and added to the back of the transmit queue.
 
 ### _***task_error_check()***_
 
