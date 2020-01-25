@@ -179,6 +179,8 @@ void initBMSobject() {
     bms.temp.data[x] = 0;
   }
   
+  bms.temp.sem = xSemaphoreCreateBinary();
+
   wdawg.master_sem = xSemaphoreCreateBinary();
   wdawg.new_msg = xTaskGetTickCount();
   
@@ -186,6 +188,7 @@ void initBMSobject() {
   
   xSemaphoreGive(bms.state_sem);
   xSemaphoreGive(bms.param.sem);
+  xSemaphoreGive(bms.temp.sem);
 }
 
 /***************************************************************************

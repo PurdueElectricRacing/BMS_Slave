@@ -25,7 +25,8 @@ void task_acquire_temp() {
   uint8_t read_byte = 0;
   uint8_t write_data[WRITE_MSG_SIZE];
   init_LTC2497(); //don't need to handle an error TODO: (maybe use a while loop)
-  
+
+
   TickType_t time_init = 0;
   while (1) {
     time_init = xTaskGetTickCount();
@@ -52,26 +53,9 @@ void task_acquire_temp() {
         while (HAL_I2C_GetState(&hi2c1) != HAL_I2C_STATE_READY)
 				{
 				}
-        //TODO: remove
-//        switch (i) {
-//					case 0:
-//						adc_val0 = ((uint16_t) temp_array[0] << 10) | ((uint16_t) temp_array[1] << 2) | ((uint16_t) temp_array[2] >> 6);
-//						break;
-//					case 1:
-//						adc_val1 = ((uint16_t) temp_array[0] << 10) | ((uint16_t) temp_array[1] << 2) | ((uint16_t) temp_array[2] >> 6);
-//						break;
-//					case 2:
-//						adc_val2 = ((uint16_t) temp_array[0] << 10) | ((uint16_t) temp_array[1] << 2) | ((uint16_t) temp_array[2] >> 6);
-//						break;
-//					case 3:
-//						adc_val3 = ((uint16_t) temp_array[0] << 10) | ((uint16_t) temp_array[1] << 2) | ((uint16_t) temp_array[2] >> 6);
-//						break;
-//					case 4:
-//						adc_val4 = ((uint16_t) temp_array[0] << 10) | ((uint16_t) temp_array[1] << 2) | ((uint16_t) temp_array[2] >> 6);
-//						break;
-//        }
+
         adc_val = adc_extract(&temp_array);
-        //TODO: Raymond need to conver the adc_val of this to actual temperature
+//        //TODO: Raymond need to conver the adc_val of this to actual temperature
         if (xSemaphoreTake(bms.temp.sem, TIMEOUT) == pdTRUE) {
         	bms.temp.data[i] = adc_val;
         	xSemaphoreGive(bms.temp.sem);

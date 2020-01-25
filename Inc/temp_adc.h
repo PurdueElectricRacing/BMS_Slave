@@ -12,8 +12,8 @@
 
 #define NUM_CHANNELS 16
 
-#define ID_TEMP_1   0x76
-#define ID_TEMP_2   0x7e
+#define ID_TEMP_1   0b1000101
+#define ID_TEMP_2   0b1000110
 #define TRIALS      2
 #define NUM_CHANNELS 16
 #define ACQUIRE_TEMP_STACK_SIZE 128
