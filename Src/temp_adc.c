@@ -130,7 +130,6 @@ void init_LTC2497(uint8_t * write_data)
 {
 	//Try connecting to both individually to check connection status
 	uint8_t timeout = 0;
-	Success_t status = SUCCESSFUL;
 	write_data[0] = set_address(ID_TEMP_1, WRITE_ENABLE);
 	write_data[1] = channel_combine(channel[0]);
 	write_data[2] = 0xFF;
@@ -141,11 +140,11 @@ void init_LTC2497(uint8_t * write_data)
 	}
 	if (timeout >= WRITE_TIMEOUT)
 	{
-		status = FAILURE;
 		bms.temp1_con = FAULTED;
 	}
 	vTaskDelay(WRITE_REQ_WAIT);
 
+	timeout = 0;
 	write_data[0] = set_address(ID_TEMP_2, WRITE_ENABLE);
 	write_data[1] = channel_combine(channel[0]);
 	write_data[2] = 0xFF;
@@ -156,7 +155,6 @@ void init_LTC2497(uint8_t * write_data)
 	}
 	if (timeout >= WRITE_TIMEOUT)
 	{
-		status = FAILURE;
 		bms.temp2_con = FAULTED;
 	}
 	vTaskDelay(WRITE_REQ_WAIT);
