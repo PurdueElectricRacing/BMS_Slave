@@ -9,24 +9,26 @@
 #define TEMP_ADC_H_
 
 #include "bms.h"
+#include <math.h>
 
 #define NUM_CHANNELS 16
 
-#define ID_TEMP_1   0b1000101
-#define ID_TEMP_2   0b1000110
+#define ID_TEMP_1   			0b1000110
+#define ID_TEMP_2   			0b1000101
+#define ID_TEMP_GLOBAL			0b1110111
 #define TRIALS      2
 #define NUM_CHANNELS 16
 #define ACQUIRE_TEMP_STACK_SIZE 128
 #define ACQUIRE_TEMP_PRIORITY   1
 #define I2C_TIMEOUT             100 / portTICK_RATE_MS
-#define READ_REQ_WAIT						200 / portTICK_RATE_MS
-#define WRITE_REQ_WAIT					200 / portTICK_RATE_MS
-
+#define READ_REQ_WAIT			200 / portTICK_RATE_MS
+#define WRITE_REQ_WAIT			200 / portTICK_RATE_MS
 
 //writing
-#define WRITE_MSG_SIZE    2
-#define WRITE_ENABLE      0x00 //xxxx-xxx0
-#define CHANGE_CHANNEL    0xA0 //101x-xxxx
+#define WRITE_MSG_SIZE    		2
+#define WRITE_ENABLE      		0x00 //xxxx-xxx0
+#define CHANGE_CHANNEL    		0xA0 //101x-xxxx
+#define WRITE_TIMEOUT			1000
 
 #define SAME_CHANNEL      0x00 //000x-xxxx
 
@@ -60,11 +62,21 @@
 //read each set of temps at 2xRate
 #define ACQUIRE_TEMP_RATE       500 / portTICK_RATE_MS
 
+//Thermistor Constants NXRT15XV103FA1B
+#define B_VALUE           3977      //Beta value 25*C to 85*C temp range
+#define THERM_RESIST      10000     //10K Ohm resistor
+#define THERM_TAU         4         //4 second time constant
+#define THERM_DISS_CONST  1.5       //1.5 second thermal dissipation constant
+#define VOLTAGE_REF       2.5       //Voltage Ref into LTC2497 is 5 volts (needs to change)
+#define AMBIENT_TEMP      298.15    //Degrees C
+#define VOLTAGE_TOP       5       //top of the voltage divider
+#define R_INF_3977        0.016106  //r_inf = R0 * exp(-Beta/t0) beta = 3977
+#define KELVIN_2_CELSIUS  273.15
 //macros
 #define channel_combine(channel) CHANGE_CHANNEL | SGL_MASK | channel
 #define set_address(address, write_en) (address << 1) | write_en
-#define adc_extract(arr) ((uint16_t) arr[0] << 10) | ((uint16_t) arr[1] << 2) | ((uint16_t) arr[2] >> 6)
 
 void task_acquire_temp();
+uint16_t readLTCValue(uint8_t currentChannel, uint8_t tap);
 
 #endif /* TEMP_ADC_H_ */
