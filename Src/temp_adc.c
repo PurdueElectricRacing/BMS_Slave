@@ -6,7 +6,7 @@
  */
 #include "temp_adc.h"
 
-Success_t init_LTC2497(uint8_t * write_data);
+void init_LTC2497(uint8_t * write_data);
 uint16_t adc2temp(uint16_t adc_val);
 inline uint16_t adc_extract(uint8_t * arr);
 uint16_t adc2temp(uint16_t adc_val);
@@ -126,7 +126,7 @@ uint16_t adc2temp(uint16_t adc_value)
 	return (uint16_t)(10 * temperature);
 }
 
-Success_t init_LTC2497(uint8_t * write_data)
+void init_LTC2497(uint8_t * write_data)
 {
 	//Try connecting to both individually to check connection status
 	uint8_t timeout = 0;
@@ -160,6 +160,4 @@ Success_t init_LTC2497(uint8_t * write_data)
 		bms.temp2_con = FAULTED;
 	}
 	vTaskDelay(WRITE_REQ_WAIT);
-
-	return status;
 }
