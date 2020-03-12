@@ -47,7 +47,7 @@ void task_heartbeat() {
   while (1) {
     time_init = xTaskGetTickCount();
     HAL_GPIO_TogglePin(HEARTBEAT_GPIO_Port, HEARTBEAT_Pin);
-    HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
+//    HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
     vTaskDelayUntil(&time_init, HEARTBEAT_RATE);
   }
 }
@@ -129,16 +129,16 @@ void initRTOSObjects() {
   bms.q_rx_can = xQueueCreate(CAN_RX_Q_SIZE, sizeof(CanRxMsgTypeDef));
   
   //start tasks
-  xTaskCreate(task_txCan, "Transmit Can", CAN_TX_STACK_SIZE, NULL, CAN_TX_PRIORITY, *(TaskHandle_t*) &bms.tasks[i++]);
-  xTaskCreate(task_CanProcess, "Process Can", CAN_RX_STACK_SIZE, NULL, CAN_RX_PRIORITY, *(TaskHandle_t*) &bms.tasks[i++]);
-  xTaskCreate(task_bms_main, "Main Task", BMS_MAIN_STACK_SIZE, NULL, BMS_MAIN_PRIORITY, *(TaskHandle_t*) &bms.tasks[i++]);
-  xTaskCreate(task_heartbeat, "Heartbeat", HEARTBEAT_STACK_SIZE, NULL, HEARTBEAT_PRIORITY, *(TaskHandle_t*) &bms.tasks[i++]);
-  xTaskCreate(task_Master_WDawg, "Master WDawg", WDAWG_STACK_SIZE, NULL, WDAWG_PRIORITY, *(TaskHandle_t*) &bms.tasks[i++]);
+//  xTaskCreate(task_txCan, "Transmit Can", CAN_TX_STACK_SIZE, NULL, CAN_TX_PRIORITY, *(TaskHandle_t*) &bms.tasks[i++]);
+//  xTaskCreate(task_CanProcess, "Process Can", CAN_RX_STACK_SIZE, NULL, CAN_RX_PRIORITY, *(TaskHandle_t*) &bms.tasks[i++]);
+//  xTaskCreate(task_bms_main, "Main Task", BMS_MAIN_STACK_SIZE, NULL, BMS_MAIN_PRIORITY, *(TaskHandle_t*) &bms.tasks[i++]);
+//  xTaskCreate(task_heartbeat, "Heartbeat", HEARTBEAT_STACK_SIZE, NULL, HEARTBEAT_PRIORITY, *(TaskHandle_t*) &bms.tasks[i++]);
+//  xTaskCreate(task_Master_WDawg, "Master WDawg", WDAWG_STACK_SIZE, NULL, WDAWG_PRIORITY, *(TaskHandle_t*) &bms.tasks[i++]);
   xTaskCreate(task_VSTACK, "VSTACK", VSTACK_STACK_SIZE, NULL, VSTACK_PRIORITY, *(TaskHandle_t*) &bms.tasks[i++]);
-  xTaskCreate(task_acquire_temp, "temp", ACQUIRE_TEMP_STACK_SIZE, NULL, ACQUIRE_TEMP_PRIORITY, *(TaskHandle_t*) &bms.tasks[i++]);
-  xTaskCreate(task_broadcast, "broadcast", BROAD_STACK_SIZE, NULL, BROAD_PRIORITY, *(TaskHandle_t*) &bms.tasks[i++]);
-  xTaskCreate(task_error_check, "Error Check", ERROR_CHECK_STACK_SIZE, NULL,
-              ERROR_CHECK_RATE_PRIORITY, *(TaskHandle_t*) &bms.tasks[i++]);
+//  xTaskCreate(task_acquire_temp, "temp", ACQUIRE_TEMP_STACK_SIZE, NULL, ACQUIRE_TEMP_PRIORITY, *(TaskHandle_t*) &bms.tasks[i++]);
+//  xTaskCreate(task_broadcast, "broadcast", BROAD_STACK_SIZE, NULL, BROAD_PRIORITY, *(TaskHandle_t*) &bms.tasks[i++]);
+//  xTaskCreate(task_error_check, "Error Check", ERROR_CHECK_STACK_SIZE, NULL,
+//              ERROR_CHECK_RATE_PRIORITY, *(TaskHandle_t*) &bms.tasks[i++]);
               
 }
 

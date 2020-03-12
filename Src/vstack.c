@@ -33,7 +33,8 @@ void task_VSTACK() {
 		  //confirm the PEC value is correct
 		  recv_pec_val = byte_combine(data[6], data[7]);
 		  pec_val = LTC6811Pec(data, 6);
-		  if (recv_pec_val == pec_val) {
+//		  if (recv_pec_val == pec_val)
+		  {
 		    //valid voltage data update the table
 		    if (xSemaphoreTake(bms.vtap.sem, TIMEOUT) == pdTRUE) {
 		      x = (i-1) * 3;
@@ -43,7 +44,8 @@ void task_VSTACK() {
 		      xSemaphoreGive(bms.vtap.sem);
 		    }
 		  }
-		  else {
+//		  else
+		  {
 		    //TODO bad voltage value what to do
 		  }
 		}

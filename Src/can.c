@@ -191,9 +191,9 @@ void task_CanProcess() {
           //see if this pertains to you and then write passive balancing as requested
           if (rx_can.Data[0] == ID_SLAVE && bms.state == NORMAL_OP) {
             if (rx_can.Data[1] == 0) {
-              HAL_GPIO_WritePin(PASSIVE_EN_GPIO_Port, PASSIVE_EN_Pin, GPIO_PIN_RESET);
+//              HAL_GPIO_WritePin(PASSIVE_EN_GPIO_Port, PASSIVE_EN_Pin, GPIO_PIN_RESET);
             } else {
-              HAL_GPIO_WritePin(PASSIVE_EN_GPIO_Port, PASSIVE_EN_Pin, GPIO_PIN_SET);
+//              HAL_GPIO_WritePin(PASSIVE_EN_GPIO_Port, PASSIVE_EN_Pin, GPIO_PIN_SET);
             }
           }
           break;

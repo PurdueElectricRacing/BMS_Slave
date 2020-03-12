@@ -115,6 +115,7 @@ void cmd_68(uint8_t tx_cmd[2]) {
   cmd_pec = LTC6811Pec(&cmd[0], 2);
   cmd[2] = (uint8_t) (cmd_pec >> 8);
   cmd[3] = (uint8_t) (cmd_pec);
+
   HAL_GPIO_WritePin(VSTACK_SPI_SS_GPIO_Port, VSTACK_SPI_SS_Pin, GPIO_PIN_RESET);
   HAL_SPI_Transmit(LTC6811_SPI, cmd, 4, HAL_MAX_DELAY);
   HAL_GPIO_WritePin(VSTACK_SPI_SS_GPIO_Port, VSTACK_SPI_SS_Pin, GPIO_PIN_SET);
@@ -200,6 +201,11 @@ void LTC681x_adcv(uint8_t MD, //ADC Mode
   cmd[0] = md_bits + 0x02;
   md_bits = (MD & 0x01) << 7;
   cmd[1] = md_bits + 0x60 + (DCP << 4) + CH;
+
+  uint16_t cmd_16 = (0x260 | (MD<<7) | (DCP<<4) | (CH));
+  cmd[0] = cmd_16 >> 8;
+  cmd[1] = cmd_16;
+
   cmd_68(cmd);
 }
 
