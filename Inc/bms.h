@@ -25,7 +25,7 @@
 #define TRACE_ENABLE 0
 
 //Slave mode
-#define DUAL_IC
+//#define DUAL_IC
 
 //Constants
 #define NUM_VTAPS         6 //number of voltage taps per module

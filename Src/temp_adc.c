@@ -73,7 +73,7 @@ void task_acquire_temp() {
 //						adc_val4 = ((uint16_t) temp_array[0] << 10) | ((uint16_t) temp_array[1] << 2) | ((uint16_t) temp_array[2] >> 6);
 //						break;
 //        }
-        adc_val = adc_extract(temp_array);
+//        adc_val = adc_extract(temp_array);
         temperature = adc2temp(adc_val);
 
         if (xSemaphoreTake(bms.temp.sem, TIMEOUT) == pdTRUE) {

@@ -10,6 +10,7 @@
 
 #include "bms.h"
 #include "stm32l4xx_hal_spi.h"
+#include "LTC6811.h"
 
 //Essentials
 #define GREAT				1
@@ -73,7 +74,6 @@ enum {
 
 //If DUAL_IC is defined, the program will attempt to use address communication and will initialize two sets of vtaps
 //PLEASE NOTE!! DUAL_IC NEEDS TO BE DEFINED IN bms.h TO GET A VALID INITIALIZATION OF THE VTAPS
-#define DUAL_IC
 
 static const uint16_t crc15Table[256] = { 0x0, 0xc599, 0xceab, 0xb32, 0xd8cf,
     0x1d56, 0x1664, 0xd3fd, 0xf407, 0x319e,
@@ -107,23 +107,14 @@ static const uint16_t crc15Table[256] = { 0x0, 0xc599, 0xceab, 0xb32, 0xd8cf,
     0xb10b, 0x7492, 0x5368, 0x96f1, 0x9dc3, 0x585a, 0x8ba7, 0x4e3e, 0x450c,
     0x8095 };
 
-static const uint8_t readCmd[6] = {REG_A, REG_B, REG_C, REG_D, REG_E, REG_F};
-
-#ifdef DUAL_IC
-static const uint8_t spiAddr[2] = {LTC6811_ADDR_ONE, LTC6811_ADDR_TWO}; //Yes... I know... I should just define them here. I will in the future, I just think this is easier to read.
-#endif
+#define RDCVA       0x0004  /** Read the Cell Voltage Register A (CVAR) */
+#define RDCVB       0x0006  /** Read the Cell Voltage Register B (CVBR) */
+#define RDCVC       0x0008  /** Read the Cell Voltage Register C (CBCR) */
+static const uint16_t readCmd[3] = {RDCVA, RDCVB, RDCVC};
 
 void task_VSTACK();
 HAL_StatusTypeDef initLTC();
-HAL_StatusTypeDef ADCV(uint8_t MD, uint8_t DCP, uint8_t CH);
-#ifdef DUAL_IC
-HAL_StatusTypeDef RDCVX(uint8_t cellGroup, uint8_t * dataIn, uint8_t addr);
-#else
 HAL_StatusTypeDef RDCVX(uint8_t cellGroup, uint8_t * dataIn);
-#endif
-HAL_StatusTypeDef CLRCELL();
-HAL_StatusTypeDef RDSTATB(uint8_t * dataIn);
-int ADOW(uint8_t MD, uint8_t DCP);
 void wakeSPI();
 uint16_t pec(uint8_t * data, uint8_t len);
 HAL_StatusTypeDef sendSPI(uint8_t * data, int len);
