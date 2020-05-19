@@ -108,7 +108,14 @@ int broadcast_poll(uint16_t command) {
 	start_comm_with_LTC6811();
 	HAL_SPI_Transmit(LTC6811_SPI, message, 4, HAL_MAX_DELAY);
 
+	// Wait for LTC device to let go of SDO
+	while (HAL_GPIO_ReadPin(VSTACK_SPI_MISO_GPIO_Port, VSTACK_SPI_MISO_Pin)
+				!= GPIO_PIN_SET)
+			;
+
 	end_comm_with_LTC6811();
+
+
 
 	return 0;
 }
@@ -176,7 +183,7 @@ int broadcast_read(uint16_t command, uint16_t size, uint8_t *data) {
 	HAL_SPI_Transmit(LTC6811_SPI, command_message, 4, HAL_MAX_DELAY);
 //	HAL_Delay(1);
 
-	// Receive data
+// Receive data
 	HAL_SPI_Receive(LTC6811_SPI, data, size, HAL_MAX_DELAY);
 
 	// Receive PEC

@@ -106,6 +106,11 @@
  * Status
  */
 #define ADCVAX(MD,DCP)      (0x46F | (MD<<7) | (DCP<<4))
+
+
+#define VUV(voltage_low) ((voltage_low * 10000 / 16) - 1)
+#define VOV(voltage_high) (voltage_high * 10000 / 16)
+
 /**
  * @brief Start Combined Cell Voltage and SC Conversion and Poll Status
  */

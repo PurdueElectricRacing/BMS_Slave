@@ -28,7 +28,7 @@
 //#define DUAL_IC
 
 //Constants
-#define NUM_VTAPS         6 //number of voltage taps per module
+#define NUM_VTAPS         12 //number of voltage taps per module
 #define NUM_TEMP          2 //number of thermistors per module
 
 //RTOS Constants

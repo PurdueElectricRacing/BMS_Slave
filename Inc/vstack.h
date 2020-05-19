@@ -110,10 +110,14 @@ static const uint16_t crc15Table[256] = { 0x0, 0xc599, 0xceab, 0xb32, 0xd8cf,
 #define RDCVA       0x0004  /** Read the Cell Voltage Register A (CVAR) */
 #define RDCVB       0x0006  /** Read the Cell Voltage Register B (CVBR) */
 #define RDCVC       0x0008  /** Read the Cell Voltage Register C (CBCR) */
-static const uint16_t readCmd[3] = {RDCVA, RDCVB, RDCVC};
+#define RDCVD       0x000A  /** Read the Cell Voltage Register D (CBDR) */
+
+static const uint16_t readCmd[3] = {RDCVA, RDCVB, RDCVC, RDCVD};
 
 void task_VSTACK();
 HAL_StatusTypeDef initLTC();
+HAL_StatusTypeDef pollOVUVStatus();
+HAL_StatusTypeDef pollOpenWire();
 HAL_StatusTypeDef RDCVX(uint8_t cellGroup, uint8_t * dataIn);
 void wakeSPI();
 uint16_t pec(uint8_t * data, uint8_t len);
@@ -121,5 +125,6 @@ HAL_StatusTypeDef sendSPI(uint8_t * data, int len);
 HAL_StatusTypeDef recieveSPI(uint8_t * cmd, int cmdLen, uint8_t * data, int dataLen);
 void handleHALError();
 void waitMicros(uint32_t cycles);
+
 
 #endif /* VSTACK_H_ */
