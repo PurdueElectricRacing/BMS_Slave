@@ -73,6 +73,11 @@
 //expects a uint16_t type
 #define extract_LSB(value) (value & 0x00FF)
 #define extract_MSB(value) ((value >> 8) & 0x00FF)
+/*
+  Over / Under voltage values
+*/
+#define VUV(voltage_low) ((voltage_low * 10000 / 16) - 1)
+#define VOV(voltage_high) (voltage_high * 10000 / 16)
 
 //enums
 typedef enum {
@@ -137,6 +142,8 @@ typedef struct {
 typedef struct {
   SemaphoreHandle_t sem;
   uint16_t data[NUM_VTAPS];
+  uint16_t cell_volt_max;
+  uint16_t cell_volt_min;
 } vtap_t;
 
 //Main BMS structure that holds can handles and all of the queues

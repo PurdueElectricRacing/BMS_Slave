@@ -205,6 +205,9 @@ void initBMSobject(flag_t first) {
   bms.param.volt_msg_en = ASSERTED;
   bms.param.temp_msg_rate = TEMP_POLL_RATE;
   bms.param.volt_msg_rate = VOLT_POLL_RATE * 40;
+
+  bms.vtap.cell_volt_max = VOV(4.2);
+  bms.vtap.cell_volt_min = VOV(2.1);
 #ifdef DUAL_IC
   for (i = 0; i < 2; ++i)
   {
