@@ -49,7 +49,8 @@ void task_VSTACK()
 		openCells = pollOpenWireStatus();
 		if (openCells != 0)
 		{
-			// Hanlde Open Wire
+			// Handle Open Wire
+			// bms.vtap.fault = ASSERTED or something
 		}
 
 		for (i = 0; i <= (NUM_VTAPS / 3); i++)
@@ -69,12 +70,17 @@ void task_VSTACK()
 		// Check for over/under voltage status from BMIC
 		ovuvCells = pollOVUVStatus();
 
-		// Only care about the numver of cells configured for
+		// Only care about the number of cells configured for
 		// Mask out the unused cells
 		if (ovuvCells & ~(0xFFFFFFFF << (2 * NUM_VTAPS)) != 0) 
 		{
-			// Hnalde OV/UV
+			// Handle OV/UV
+			// bms.vtap.fault = ASSERTED or something
 		}
+
+		// TODO: Add over voltage, under voltage, and open cell status to BMS object and send data to master
+		// bms.vtap.ovuv = ovuvStatus;
+		// bms.vtap.open_cells = openCells;
 
 		vTaskDelayUntil(&initTime, VSTACK_RATE);
 	}

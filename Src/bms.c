@@ -167,28 +167,17 @@ void initBMSobject(flag_t first) {
   if (first == ASSERTED) {
     bms.state_sem = xSemaphoreCreateBinary();
     bms.param.sem = xSemaphoreCreateBinary();
-    //bms.can = &hcan1;
+    bms.can = &hcan1;
     bms.spi = &hspi1;
     bms.i2c = &hi2c1;
     bms.temp.sem = xSemaphoreCreateBinary();
-#ifdef DUAL_IC
-    bms.vtap[0].sem = xSemaphoreCreateBinary();
-    bms.vtap[1].sem = xSemaphoreCreateBinary();
-
-#else
     bms.vtap.sem = xSemaphoreCreateBinary();
-#endif
 
     wdawg.master_sem = xSemaphoreCreateBinary();
 
     xSemaphoreGive(bms.temp.sem);
-#ifdef DUAL_IC
-    xSemaphoreGive(bms.vtap[0].sem);
-    xSemaphoreGive(bms.vtap[1].sem);
-#else
-    xSemaphoreGive(bms.vtap.sem);
-#endif
 
+    xSemaphoreGive(bms.vtap.sem);
     xSemaphoreGive(wdawg.master_sem); //allows it to be taken
 
     xSemaphoreGive(bms.state_sem);
@@ -199,7 +188,7 @@ void initBMSobject(flag_t first) {
   bms.passive_en = DEASSERTED;
   bms.temp1_con = NORMAL; //todo: change when integrated
   bms.temp2_con = NORMAL; //unused for senior design TODO: fix when it's real
-  bms.vstack_con = NORMAL; //todo: change when integrated
+  bms.vstack_con = FAULTED; //todo: change when integrated
   
   bms.param.temp_msg_en = ASSERTED;
   bms.param.volt_msg_en = ASSERTED;
@@ -208,18 +197,11 @@ void initBMSobject(flag_t first) {
 
   bms.vtap.cell_volt_max = VOV(4.2);
   bms.vtap.cell_volt_min = VOV(2.1);
-#ifdef DUAL_IC
-  for (i = 0; i < 2; ++i)
-  {
-	  for (x = 0; x < NUM_VTAPS; x ++) {
-	    bms.vtap[i].data[x] = VOLT_LOW_IMPOS;
-	  }
-  }
-#else
+
   for (x = 0; x < NUM_VTAPS; x ++) {
     bms.vtap.data[x] = VOLT_LOW_IMPOS;
   }
-#endif
+
   for (x = 0; x < NUM_TEMP; x ++) {
     bms.temp.data[x] = TEMP_LOW_IMPOS;
   }

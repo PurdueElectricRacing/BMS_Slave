@@ -165,11 +165,8 @@ typedef struct {
   
   params_t          param;
   
-#ifdef DUAL_IC
-  vtap_t			vtap[2];
-#else
   vtap_t            vtap;
-#endif
+
   temp_t            temp;
   
   SemaphoreHandle_t state_sem;
